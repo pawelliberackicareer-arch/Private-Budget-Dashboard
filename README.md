@@ -1,3 +1,5 @@
+HTML Link to the dashboard - "https://pawelliberackicareer-arch.github.io/Private-Budget-Dashboard/"
+
 **Profile and city presets**
 Pick one of 19 Polish cities, your type of home and your age. The dashboard fills in typical costs for that city: rent (April 2026 offer prices), bills, food, car and other costs.
 
