@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Private Budget Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#EDF0F3; --panel:#FFFFFF; --ink:#172235; --muted:#5B6778; --line:#D4DAE2; --track:#E2E7ED;
+  --income:#1E7A5A; --cost:#A33B3B; --limit:#B07D0B; --invest:#2F5DA8;
+  --c-food:#5E9C3F; --c-flat:#7A3B69; --c-loan:#A33B3B; --c-car:#3F7C8C; --c-misc:#8A8F99; --c-free:#C9D3DE;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10161F; --panel:#18212D; --ink:#E6EBF1; --muted:#9AA6B5; --line:#2A3646; --track:#243040;
+    --income:#4CC08F; --cost:#E07A7A; --limit:#E0B44C; --invest:#7FA6E8;
+    --c-food:#8CC46A; --c-flat:#C78BB6; --c-loan:#E07A7A; --c-car:#6FB3C4; --c-misc:#A8AEB8; --c-free:#33414F;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10161F; --panel:#18212D; --ink:#E6EBF1; --muted:#9AA6B5; --line:#2A3646; --track:#243040;
+  --income:#4CC08F; --cost:#E07A7A; --limit:#E0B44C; --invest:#7FA6E8;
+  --c-food:#8CC46A; --c-flat:#C78BB6; --c-loan:#E07A7A; --c-car:#6FB3C4; --c-misc:#A8AEB8; --c-free:#33414F;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+header.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+header.top .brand{font-weight:600;color:var(--muted);font-size:15px}
+button.ghost{background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer}
+button.ghost:hover{color:var(--ink);border-color:var(--muted)}
+:focus-visible{outline:2px solid var(--invest);outline-offset:2px}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:28px;align-items:end;padding:18px 0 30px;border-bottom:2px solid var(--ink);margin-bottom:28px}
+.hero h1{font-size:clamp(34px,5vw,58px);line-height:1.02;font-weight:800;letter-spacing:-0.02em;margin:0 0 14px}
+.hero p.sub{margin:0;color:var(--muted);font-size:17px;max-width:46ch}
+.hero p.sub strong{color:var(--ink)}
+.hero .chart{width:100%}
+.hero .chart svg{width:100%;height:auto;display:block}
+.netrow{display:flex;gap:28px;flex-wrap:wrap;margin-top:18px}
+.netrow div{min-width:120px}
+.netrow .k{font-size:13px;color:var(--muted)}
+.netrow .v{font-size:24px;font-weight:700}
+
+/* panels */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px 22px 10px}
+.panel h2{font-size:20px;margin:0 0 4px;font-weight:700;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.panel h2 .tot{font-size:20px}
+.panel .hint{color:var(--muted);font-size:14px;margin:0 0 14px}
+.panel.cost{border-top:4px solid var(--cost)}
+.panel.inc{border-top:4px solid var(--income)}
+
+.sl{padding:12px 0;border-top:1px solid var(--line)}
+.sl .row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.sl label{font-weight:600;display:flex;align-items:center;gap:8px}
+.sl label .dot{width:10px;height:10px;border-radius:2px;flex:none}
+.sl .num{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:14px}
+.sl input[type=number]{width:96px;text-align:right;font:inherit;font-weight:700;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+.sl input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;background:linear-gradient(to right,var(--fill,var(--ink)) 0 var(--p,50%),var(--track) var(--p,50%) 100%);cursor:pointer}
+.sl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--panel);border:3px solid var(--fill,var(--ink))}
+.sl input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--panel);border:3px solid var(--fill,var(--ink))}
+.sl small{display:block;color:var(--muted);font-size:13px;margin-top:4px}
+.opts{display:flex;flex-wrap:wrap;gap:16px;padding:12px 0;border-top:1px solid var(--line);font-size:14px}
+.opts label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.opts select{font:inherit;font-size:14px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 6px}
+
+/* results */
+.balance .big{font-size:40px;font-weight:800;letter-spacing:-0.02em;line-height:1.1}
+.balance .big.neg{color:var(--cost)}
+.balance .big.pos{color:var(--income)}
+.alloc{display:flex;height:28px;border-radius:6px;overflow:hidden;margin:16px 0 10px;background:var(--track)}
+.alloc span{display:block;height:100%;transition:width .25s ease}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:14px;margin-bottom:12px}
+.legend div{display:flex;justify-content:space-between;gap:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+.legend .pct{color:var(--muted)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:15px;padding:12px 0;border-top:1px solid var(--line)}
+.kv .k{color:var(--muted)}
+.kv .v{font-weight:600;text-align:right}
+.warn{background:color-mix(in srgb,var(--cost) 12%,transparent);color:var(--ink);border-left:3px solid var(--cost);padding:8px 12px;border-radius:4px;font-size:14px;margin:8px 0 12px}
+
+.proj svg{width:100%;height:auto;display:block}
+.projnums{display:flex;gap:24px;flex-wrap:wrap;margin:10px 0 14px}
+.projnums .k{font-size:13px;color:var(--muted)}
+.projnums .v{font-size:22px;font-weight:700}
+
+details{margin-top:20px}
+details summary{cursor:pointer;font-weight:700;font-size:17px;padding:8px 0}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:600}
+tr.cross td{background:color-mix(in srgb,var(--limit) 16%,transparent)}
+.foot{color:var(--muted);font-size:13px;margin-top:22px;max-width:80ch}
+
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr}
+  .grid2{grid-template-columns:1fr}
+  .legend{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion: reduce){.alloc span{transition:none}}
+.profile{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:flex-end;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 20px;margin:10px 0 6px}
+.profile .f{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted)}
+.profile select,.profile input{font:inherit;font-size:16px;font-weight:600;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 10px;min-width:120px}
+.profile input[type=number]{width:90px;min-width:0}
+.profile .cityinfo{flex:1 1 260px;font-size:14px;color:var(--muted);line-height:1.45}
+.profile .cityinfo strong{color:var(--ink)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-left:auto}
+.seg button{font:inherit;font-size:13px;background:none;border:0;padding:3px 10px;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.hidden{display:none!important}
+:root{--a1:#2F5DA8;--a2:#1E7A5A;--a3:#7A3B69;--a4:#3F7C8C;--a5:#9A6A12;--a6:#5E9C3F;--bankc:#8A8F99;--d1:#A33B3B;--d2:#C2655B;--d3:#7E2E2E}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--a1:#7FA6E8;--a2:#4CC08F;--a3:#C78BB6;--a4:#6FB3C4;--a5:#E0B44C;--a6:#8CC46A;--bankc:#A8AEB8;--d1:#E07A7A;--d2:#F0A090;--d3:#C05050}}
+:root[data-theme="dark"]{--a1:#7FA6E8;--a2:#4CC08F;--a3:#C78BB6;--a4:#6FB3C4;--a5:#E0B44C;--a6:#8CC46A;--bankc:#A8AEB8;--d1:#E07A7A;--d2:#F0A090;--d3:#C05050}
+.worth{margin-bottom:20px;border-top:4px solid var(--ink)}
+.worth .chart svg{width:100%;height:auto;display:block}
+.items{width:100%;min-width:620px;border-collapse:collapse;font-size:14px;margin:6px 0 10px}
+.items th{text-align:left;color:var(--muted);font-weight:600;padding:6px 6px;border-bottom:1px solid var(--line)}
+.items td{padding:6px;border-bottom:1px solid var(--line);text-align:left}
+.items input{font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 8px;width:100%}
+.items input[type=number]{text-align:right;min-width:90px}
+.items td.kind{white-space:nowrap;font-weight:600}
+.items td.kind i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:baseline}
+.items tr.group td{background:var(--bg);font-weight:700;color:var(--muted);font-size:13px;padding:6px}
+.items .na{color:var(--muted);text-align:right;padding-right:12px}
+.items button.x{background:none;border:0;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:2px 8px;border-radius:4px}
+.items button.x:hover{color:var(--cost)}
+.addrow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.worthgrid{display:grid;grid-template-columns:1fr minmax(220px,280px);gap:24px;align-items:start}
+.worthstats{display:grid;gap:12px}
+.worthstats .k{font-size:13px;color:var(--muted)}
+.worthstats .v{font-size:20px;font-weight:700}
+.wlegend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;margin-top:8px;color:var(--muted)}
+.wlegend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+@media (max-width:860px){.worthgrid{grid-template-columns:1fr}}
+.relief{margin-bottom:20px;border-top:4px solid var(--limit)}
+.relief .controls{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:flex-end;margin-bottom:14px}
+.relief .controls .f{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted)}
+.relief .controls input[type=number],.relief .controls select{font:inherit;font-size:16px;font-weight:600;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 10px;width:110px}
+.relief .flags{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:16px}
+.relief .flags label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.yearstrip{display:flex;gap:4px;margin:4px 0 18px;flex-wrap:wrap}
+.yearstrip button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:6px;padding:6px 8px;min-width:58px;cursor:pointer;text-align:center;line-height:1.2}
+.yearstrip button.on{background:color-mix(in srgb,var(--income) 18%,var(--panel));color:var(--ink);border-color:var(--income)}
+.yearstrip button.sel{outline:2px solid var(--ink);outline-offset:1px;color:var(--ink);font-weight:700}
+.yearstrip small{display:block;font-size:11px}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.rcard{border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:var(--panel)}
+.rcard h3{margin:0 0 4px;font-size:16px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.rcard p{margin:4px 0 0;font-size:14px;color:var(--muted)}
+.rcard .est{margin-top:8px;font-weight:700;font-size:15px;color:var(--ink)}
+.badge{font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;flex:none}
+.b-yes{background:color-mix(in srgb,var(--income) 18%,transparent);color:var(--income)}
+.b-maybe{background:color-mix(in srgb,var(--limit) 20%,transparent);color:var(--limit)}
+.b-no{background:var(--track);color:var(--muted)}
+.b-proj{background:color-mix(in srgb,var(--invest) 18%,transparent);color:var(--invest)}
+.rcard.no{opacity:.75}
+.relief h4{font-size:15px;margin:18px 0 8px}
+.ai{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.ai .out{white-space:pre-wrap;font-size:15px;line-height:1.55;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-top:10px;max-height:520px;overflow:auto}
+.ai .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.ai input[type=text]{flex:1 1 260px;font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+button.primary{font:inherit;font-size:15px;font-weight:700;background:var(--ink);color:var(--panel);border:0;border-radius:6px;padding:9px 16px;cursor:pointer}
+button.primary:disabled{opacity:.5;cursor:default}
+.bank{margin-bottom:20px;border-top:4px solid var(--invest)}
+.bankgrid{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:24px;align-items:start}
+.bank .chart svg{width:100%;height:auto;display:block}
+.bankstats{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-top:14px}
+.bankstats .k{font-size:13px;color:var(--muted)}
+.bankstats .v{font-size:20px;font-weight:700}
+@media (max-width:860px){.bankgrid{grid-template-columns:1fr}}
+.v,.big,.tot,.num-t,table,input[type=number],.est,svg text,.netrow .v,.legend span,.yearstrip button{font-variant-numeric:tabular-nums}
+header.top .brand{font-weight:800;color:var(--ink);font-size:18px;letter-spacing:-0.01em}
+.topctl{display:flex;align-items:center;gap:10px}
+.seg.lang{margin-left:0}
+.seg.lang button{font-weight:700;padding:5px 12px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="brand">Private Budget Dashboard</span>
+    <div class="topctl">
+      <span class="seg lang" role="group" data-i18n-aria="langAria" aria-label="Język"><button type="button" data-lang="pl">PL</button><button type="button" data-lang="en">EN</button></span>
+      <button class="ghost" id="reset" type="button" data-i18n="reset">Przywróć domyślne</button>
+    </div>
+  </header>
+
+  <section class="profile" data-i18n-aria="profileAria" aria-label="Twój profil">
+    <label class="f"><span data-i18n="city">Miasto</span><select id="city"></select></label>
+    <label class="f"><span data-i18n="flat">Mieszkanie</span><select id="flatType"><option value="k" data-i18n="flatK">Kawalerka (do 40 m²)</option><option value="m" data-i18n="flatM">Mieszkanie 40–59 m²</option></select></label>
+    <label class="f"><span data-i18n="age">Wiek</span><input type="number" id="age" min="18" max="70" step="1"></label>
+    <label class="f hidden" id="bmWrap"><span data-i18n="bm">Miesiąc urodzin</span><select id="bm"></select></label>
+    <div class="cityinfo" id="cityInfo"></div>
+  </section>
+
+  <section class="hero" aria-live="polite">
+    <div>
+      <h1 id="heroTitle">…</h1>
+      <p class="sub" id="heroSub"></p>
+      <div class="netrow">
+        <div><div class="k" id="n1Lbl"></div><div class="v" id="netBefore">–</div></div>
+        <div><div class="k" id="n2Lbl"></div><div class="v" id="netAfter">–</div></div>
+        <div><div class="k" id="leftLbl"></div><div class="v" id="limitLeft">–</div></div>
+      </div>
+    </div>
+    <div class="chart" id="heroChart" role="img" data-i18n-aria="heroAria"></div>
+  </section>
+
+  <div class="grid2">
+    <section class="panel cost">
+      <h2><span data-i18n="costTitle"></span> <span class="tot" id="costTotal">–</span></h2>
+      <p class="hint" data-i18n="costHint"></p>
+      <div id="costSliders"></div>
+    </section>
+
+    <section class="panel inc">
+      <h2><span data-i18n="incTitle"></span> <span class="tot" id="incTotal">–</span></h2>
+      <p class="hint" data-i18n="incHint"></p>
+      <div id="incSliders"></div>
+      <div class="opts">
+        <label><input type="checkbox" id="pit2"> <span data-i18n="pit2"></span></label>
+        <label><span data-i18n="kupLbl"></span>
+          <select id="kup"><option value="250" data-i18n="kup250"></option><option value="300" data-i18n="kup300"></option></select>
+        </label>
+        <label><input type="checkbox" id="reinvest"> <span data-i18n="reinvest"></span></label>
+      </div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section class="panel balance">
+      <h2 data-i18n="balTitle"></h2>
+      <p class="hint" data-i18n="balHint"></p>
+      <div class="big" id="surplus">–</div>
+      <div id="warn"></div>
+      <div class="alloc" id="alloc" aria-hidden="true"></div>
+      <div class="legend" id="legend"></div>
+      <div class="kv" id="kv"></div>
+    </section>
+
+    <section class="panel proj">
+      <h2 data-i18n="projTitle"></h2>
+      <p class="hint" id="projHint"></p>
+      <div class="projnums">
+        <div><div class="k" data-i18n="pFinal"></div><div class="v" id="pFinal">–</div></div>
+        <div><div class="k" data-i18n="pPaid"></div><div class="v" id="pPaid">–</div></div>
+        <div><div class="k" data-i18n="pGain"></div><div class="v" id="pGain" style="color:var(--income)">–</div></div>
+      </div>
+      <div id="projChart" role="img" data-i18n-aria="projAria"></div>
+    </section>
+  </div>
+
+  <section class="panel bank">
+    <h2><span data-i18n="bankTitle"></span> <span class="tot" id="bankEnd">–</span></h2>
+    <p class="hint" data-i18n="bankHint"></p>
+    <div class="bankgrid">
+      <div>
+        <div id="bankSlider"></div>
+        <div class="bankstats">
+          <div><div class="k" data-i18n="bankDelta"></div><div class="v" id="bankDelta">–</div></div>
+          <div><div class="k" data-i18n="bankMin"></div><div class="v" id="bankMin">–</div></div>
+          <div><div class="k" data-i18n="bankAvg"></div><div class="v" id="bankAvg">–</div></div>
+          <div id="bankAfterBox"><div class="k" data-i18n="bankAfter"></div><div class="v" id="bankAfter">–</div></div>
+        </div>
+      </div>
+      <div class="chart" id="bankChart" role="img" data-i18n-aria="bankAria"></div>
+    </div>
+  </section>
+
+  <section class="panel worth">
+    <h2><span data-i18n="worthTitle"></span> <span class="tot" id="worthEnd">–</span></h2>
+    <p class="hint" data-i18n="worthHint"></p>
+    <div class="tablewrap"><table class="items" id="items"></table></div>
+    <div class="addrow">
+      <button class="ghost" type="button" data-add="inv" data-i18n="addInv"></button>
+      <button class="ghost" type="button" data-add="asset" data-i18n="addAsset"></button>
+      <button class="ghost" type="button" data-add="debt" data-i18n="addDebt"></button>
+    </div>
+    <div class="worthgrid">
+      <div>
+        <div class="chart" id="worthChart" role="img" data-i18n-aria="worthAria"></div>
+        <div class="wlegend" id="worthLegend"></div>
+      </div>
+      <div class="worthstats">
+        <div><div class="k" data-i18n="wAssets"></div><div class="v" id="wAssets">–</div></div>
+        <div><div class="k" data-i18n="wDebts"></div><div class="v" id="wDebts" style="color:var(--cost)">–</div></div>
+        <div><div class="k" data-i18n="wStart"></div><div class="v" id="wStart">–</div></div>
+        <div><div class="k" data-i18n="wDelta"></div><div class="v" id="wDelta">–</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel relief" id="reliefPanel">
+    <h2><span data-i18n="reliefTitle"></span> <span class="tot" id="reliefCount">–</span></h2>
+    <p class="hint" data-i18n="reliefHint"></p>
+    <div class="controls">
+      <label class="f"><span data-i18n="taxYear"></span><input type="number" id="taxYear" min="2019" max="2040" step="1"></label>
+      <div class="f"><span data-i18n="ageInYearLbl"></span><strong id="ageInYear" class="num-t" style="font-size:22px;color:var(--ink)">–</strong></div>
+      <label class="f"><span data-i18n="kids"></span><select id="kids"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" data-i18n="kids4"></option></select></label>
+    </div>
+    <div class="yearstrip" id="yearStrip" data-i18n-aria="stripAria"></div>
+    <div class="flags">
+      <label><input type="checkbox" id="fMarried"> <span data-i18n="fMarried"></span></label>
+      <label><input type="checkbox" id="fJdg"> <span data-i18n="fJdg"></span></label>
+      <label><input type="checkbox" id="fCreative"> <span data-i18n="fCreative"></span></label>
+      <label><input type="checkbox" id="fReturn"> <span data-i18n="fReturn"></span></label>
+      <label><input type="checkbox" id="fHouse"> <span data-i18n="fHouse"></span></label>
+    </div>
+    <div id="yearInfo" class="kv" style="border-top:0;padding-top:0"></div>
+    <h4 data-i18n="reliefYesH"></h4>
+    <div class="rgrid" id="reliefYes"></div>
+    <details id="reliefNoWrap"><summary style="font-size:15px" data-i18n="reliefNoS"></summary><div class="rgrid" id="reliefNo" style="margin-top:10px"></div></details>
+    <div class="ai hidden" id="aiBox">
+      <h4 style="margin-top:0" data-i18n="aiTitle"></h4>
+      <p class="hint" data-i18n="aiHint"></p>
+      <div class="row">
+        <input type="text" id="aiQ" data-i18n-ph="aiPh">
+        <button class="primary" type="button" id="aiAsk" data-i18n="aiAsk"></button>
+        <button class="ghost hidden" type="button" id="aiStop" data-i18n="aiStop"></button>
+      </div>
+      <div class="out hidden" id="aiOut" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <details>
+    <summary data-i18n="tableSum"></summary>
+    <div class="tablewrap"><table id="table"></table></div>
+  </details>
+
+  <p class="foot" data-i18n="foot"></p>
+</div>
+
+<script>
+(function(){
+const PL_YEARS = n => n===1?"rok":(n%10>=2&&n%10<=4&&(n%100<12||n%100>14))?"lata":"lat";
+const I18N = {
+pl: {
+  locale:"pl-PL", cur:"zł", dec:",", kAxis:"tys.", mAxis:"mln",
+  months:["sty","lut","mar","kwi","maj","cze","lip","sie","wrz","paź","lis","gru"],
+  monthsFull:["styczeń","luty","marzec","kwiecień","maj","czerwiec","lipiec","sierpień","wrzesień","październik","listopad","grudzień"],
+  monthsLoc:["styczniu","lutym","marcu","kwietniu","maju","czerwcu","lipcu","sierpniu","wrześniu","październiku","listopadzie","grudniu"],
+  monthsGen:["stycznia","lutego","marca","kwietnia","maja","czerwca","lipca","sierpnia","września","października","listopada","grudnia"],
+  langAria:"Język", reset:"Przywróć domyślne", profileAria:"Twój profil", city:"Miasto", flat:"Mieszkanie",
+  flatK:"Kawalerka (do 40 m²)", flatM:"Mieszkanie 40–59 m²", age:"Wiek", bm:"Miesiąc urodzin",
+  heroAria:"Przychód narastająco w roku", costTitle:"Wydatki miesięczne",
+  costHint:"Startowe kwoty ustawia wybrane miasto. Możesz je dowolnie zmienić.",
+  incTitle:"Dochody i zwrot", incHint:"Pensja z umowy o pracę. Do limitu PIT-0 liczy się kwota brutto.",
+  pit2:"Złożony PIT-2 (−300 zł zaliczki)", kupLbl:"Koszty uzyskania", kup250:"250 zł (standard)", kup300:"300 zł (dojazd z innej miejscowości)",
+  reinvest:"Inwestuj też nadwyżkę", balTitle:"Bilans miesiąca", balHint:"Średnio w roku, po podatku i składkach.",
+  projTitle:"Portfel inwestycyjny", pFinal:"Wartość na koniec", pPaid:"Wpłacone", pGain:"Zysk", projAria:"Wartość portfela w kolejnych latach",
+  bankTitle:"Stan konta", bankHint:"Saldo na koniec każdego miesiąca: wpływy z pensji i innych dochodów minus wszystkie wydatki, w tym przelew na inwestycje.",
+  bankDelta:"Zmiana w 12 mies.", bankMin:"Najniższe saldo", bankAvg:"Średnio co miesiąc", bankAfter:"Po progu co miesiąc", bankAria:"Stan konta na koniec każdego miesiąca",
+  worthTitle:"Majątek netto", worthHint:"Konto bankowe plus wszystkie aktywa minus pasywa. Wpłaty na inwestycje sumują się w suwaku „Inwestycje”, a raty pasywów w suwaku „Kredyt”.",
+  addInv:"Dodaj inwestycję", addAsset:"Dodaj inne aktywo", addDebt:"Dodaj pasywo", worthAria:"Aktywa, pasywa i majątek netto w kolejnych miesiącach",
+  wAssets:"Aktywa razem (koniec roku)", wDebts:"Pasywa razem (koniec roku)", wStart:"Majątek netto na start", wDelta:"Zmiana w 12 mies.",
+  reliefTitle:"Ulgi podatkowe", reliefHint:"Wpisz rok, a sprawdzę, ile będziesz mieć wtedy lat i które ulgi Cię dotyczą. Kwoty szacuję na podstawie pensji z dashboardu.",
+  taxYear:"Rok podatkowy", ageInYearLbl:"Wiek w tym roku", kids:"Dzieci", kids4:"4 i więcej", stripAria:"Lata z ulgą PIT-0",
+  fMarried:"W małżeństwie", fJdg:"Prowadzę JDG", fCreative:"Praca twórcza (np. programowanie)", fReturn:"Wracam do Polski z zagranicy", fHouse:"Mam dom jednorodzinny",
+  reliefYesH:"Dotyczy Cię albo warto sprawdzić", reliefNoS:"Pozostałe ulgi (teraz Cię nie dotyczą)",
+  aiTitle:"Zapytaj Claude o ulgi dla siebie",
+  aiHint:"Claude dostanie Twój profil z dashboardu (rok, wiek, pensję, miasto, zaznaczone pola) i opisze ulgi pasujące do Ciebie. Odpowiada z własnej wiedzy, bez wyszukiwania w internecie, więc najnowsze zmiany sprawdź na podatki.gov.pl.",
+  aiPh:"Dodatkowe pytanie (opcjonalnie), np. czy opłaca mi się IKZE?", aiAsk:"Zapytaj", aiStop:"Stop",
+  tableSum:"Wypłaty miesiąc po miesiącu",
+  foot:"Skąd kwoty startowe: czynsz najmu to średnie ceny ofertowe z ogłoszeń wg OnGeo.pl (kwiecień 2026), plus media ok. 450 zł dla kawalerki i 550 zł dla mieszkania 40–59 m². Jedzenie dla Krakowa to zakupy 1 100–1 600 zł plus wyjścia, dla innych miast przeliczone o lokalny poziom cen (szacunek). Auto to ok. 1 000 km miesięcznie przy 7 l/100 km i cenie Pb95 ok. 7,3 zł/l (e-petrol, sierpień 2026), plus OC i serwis. Kwota netto zakłada umowę o pracę i stałą pensję co miesiąc, licząc od styczniowej wypłaty. ZUS pracownika 13,71%, zdrowotna 9%. Pensja ponad limit PIT-0 albo po 26. urodzinach jest opodatkowana skalą 12% / 32%, a w rozliczeniu rocznym działa kwota wolna 30 000 zł. Stopa zwrotu jest nominalna, bez podatku Belki i inflacji. Dashboard nie zapisuje danych, po odświeżeniu wraca do ustawień domyślnych. To kalkulator poglądowy, nie porada podatkowa.",
+  u_rate:"% rocznie", u_years:"lat",
+  sl_invest:"Inwestycje", sln_invest:"Suma wpłat do wszystkich inwestycji",
+  sl_food:"Jedzenie", sln_food:"Zakupy i jedzenie na mieście",
+  sl_flat:"Mieszkanie i opłaty", sln_flat:"Najem plus media",
+  sl_loan:"Kredyt", sln_loan:"Suma rat z pasywów",
+  sl_car:"Auto i paliwo", sln_car:"Paliwo, OC, serwis, parkowanie",
+  sl_misc:"Inne (misc)", sln_misc:"Telefon, subskrypcje, ubrania, rozrywka",
+  sl_other:"Inne dochody netto", sln_other:"Np. wynajem, zyski, umowa o dzieło",
+  sl_rate:"Stopa zwrotu z inwestycji", sln_rate:"Ustawia stopę dla wszystkich inwestycji. Każdą możesz zmienić osobno w sekcji Majątek.",
+  sl_years:"Horyzont inwestycji", sl_bank:"Stan konta na start roku", sln_bank:"Saldo na 1 stycznia",
+  payNet:"Pensja na rękę", payGross:"Pensja brutto", segAria:"Rodzaj kwoty", segNet:"netto", segGross:"brutto",
+  payNoteNet:b=>`Pierwsza wypłata w roku. To ${b} brutto.`, payNoteGross:n=>`Na rękę w pierwszym miesiącu: ${n}.`,
+  flatKs:"kawalerka", flatMs:"mieszkanie 40–59 m²",
+  cityInfo:(c,tp,rent,media,food,misc,car)=>`${c}: ${tp} średnio <strong>${rent}</strong> najmu i ok. ${media} mediów. Startowo jedzenie ${food}, inne ${misc}, auto ${car}.`,
+  taxLine:(adv,tax,ref)=>`Zaliczki PIT w roku: <strong>${adv}</strong>, a po rozliczeniu z kwotą wolną realny podatek to <strong>${tax}</strong>${ref?`, czyli ok. <strong>${ref}</strong> zwrotu`:""}.`,
+  heroFullT:n=>`W tym roku zarobisz ${n} na rękę`,
+  heroFullS:(g,zus,h,tax,avg)=>`To <strong>${g}</strong> brutto. Po składkach ZUS (${zus}), składce zdrowotnej (${h}) i podatku PIT (${tax}) zostaje średnio <strong>${avg}</strong> miesięcznie.`,
+  refundLine:r=>` Po rozliczeniu rocznym z kwotą wolną wróci ok. <strong>${r}</strong> nadpłaconych zaliczek.`,
+  heroEndsJanT:"Ulga PIT-0 kończy się w styczniu", heroEndsJanS:tl=>`Cała pensja jest opodatkowana od pierwszej wypłaty. ${tl}`,
+  heroCrossT:i=>`Limit PIT-0 przekroczysz w ${I18N.pl.monthsLoc[i]}`,
+  heroCrossS:(n,over,tl)=>`Przy ${n}. wypłacie w roku. Ponad limit zarobisz <strong>${over}</strong> brutto. ${tl}`,
+  heroBdayT:i=>`Ulga PIT-0 skończy się w ${I18N.pl.monthsLoc[i]}`,
+  heroBdayS:(left,tl)=>`Po 26. urodzinach pensja jest opodatkowana, choć limit nie zostanie wykorzystany (zostaje ${left}). ${tl}`,
+  heroWithinT:"W tym roku zmieścisz się w limicie PIT-0",
+  heroWithinS:c=>`Roczny przychód <strong>${c}</strong> jest poniżej 85 528 zł, więc cała pensja jest bez podatku dochodowego.`,
+  nBefore:"Na rękę przed progiem", nAfter:"Na rękę po progu", nLeft:"Ulga do 26. urodzin",
+  leftYears:n=>`jeszcze ok. ${n} ${PL_YEARS(n)}`, leftUntil:m=>`do ${I18N.pl.monthsGen[m]}`,
+  nAvg:"Na rękę miesięcznie", nYearNet:"Na rękę w roku", nTax:"Podatek PIT w roku",
+  netSuffix:" netto",
+  warnDeficit:x=>`Wydatki są wyższe niż dochód o ${x} miesięcznie.`,
+  warnAfter:x=>`Po przekroczeniu progu zabraknie Ci ${x} miesięcznie. Warto odłożyć bufor wcześniej.`,
+  free:"Zostaje wolne",
+  kvAvg:"Średnio na rękę z pensji", kvBefore:"Bilans w pierwszych miesiącach", kvAfter:"Bilans po progu", kvMonthly:"Bilans miesięczny",
+  kvRate:"Stopa oszczędności (inwestycje + nadwyżka)", kvYear:"Roczna nadwyżka",
+  projHint:(n,st,c,y,r)=>`${n} ${n===1?"inwestycja":(n%10>=2&&n%10<=4&&(n<12||n>14))?"inwestycje":"inwestycji"}, start ${st}, wpłaty ${c} co miesiąc przez ${y} ${PL_YEARS(y)}, średnio ${r}% rocznie.`,
+  projEmpty:"Dodaj inwestycję w sekcji Majątek, żeby zobaczyć prognozę.",
+  thKind:"Rodzaj", thName:"Nazwa", thValue:"Wartość dziś", thContrib:"Wpłata / rata mies.", thRate:"% rocznie",
+  grp_inv:"Inwestycje", grp_asset:"Inne aktywa", grp_debt:"Pasywa", k_inv:"Inwestycja", k_asset:"Inne aktywo", k_debt:"Pasywo",
+  rate_inv:"Stopa zwrotu", rate_asset:"Zmiana wartości (np. −10 dla auta)", rate_debt:"Oprocentowanie",
+  ariaDebtVal:"Pozostało do spłaty", ariaPay:"Rata miesięczna", ariaContrib:"Wpłata miesięczna", del:"Usuń",
+  itemsEmpty:"Dodaj pierwszą inwestycję, aktywo albo pasywo przyciskami poniżej.",
+  n_inv:n=>`Inwestycja ${n}`, n_asset:n=>`Aktywo ${n}`, n_debt:n=>`Pasywo ${n}`, nLoan:"Kredyt", nCar:"Samochód",
+  limitLbl:"limit PIT-0: 85 528 zł", bday:"26. urodziny", start:"start", yrShort:i=>`${i} r.`, valueLbl:"wartość", paidLbl:"wpłaty",
+  balanceLbl:"saldo", bankLbl:"Konto", overdraft:"Debet na koncie", legendBank:"Konto bankowe", legendWorth:"Majątek netto",
+  grossLine:"brutto narastająco", netLine:"na rękę narastająco",
+  thMonth:"Miesiąc", thGross:"Brutto", thZus:"ZUS", thHealth:"Zdrowotna", thAdv:"Zaliczka PIT", thNet:"Na rękę", thCum:"Brutto narastająco", thBank:"Stan konta",
+  ageYears:n=>`${n} ${PL_YEARS(n)}`, stripAge:n=>`${n} ${PL_YEARS(n)}`,
+  scale:yr=> yr<=2019 ? "18% do września, 17% od października; 32% powyżej 85 528 zł; kwota wolna 8 000 zł (malejąca)"
+    : yr<=2021 ? "17% i 32% powyżej 85 528 zł; kwota wolna 8 000 zł (malejąca przy wyższych dochodach)"
+    : yr===2022 ? "Od lipca 12% i 32% powyżej 120 000 zł; kwota wolna 30 000 zł (w I półroczu 17%)"
+    : "12% i 32% powyżej 120 000 zł; kwota wolna 30 000 zł",
+  yiScale:"Skala podatkowa", yiBase:"Twój dochód do opodatkowania", perYear:" rocznie", yiNote:"Uwaga", yiFuture:"Dla lat po 2026 przyjmuję zasady z 2026 r.",
+  b_yes:"Dotyczy Cię", b_maybe:"Sprawdź warunki", b_proj:"Projekt", b_no:"Nie dotyczy",
+  reliefCount:n=>`${n} pasujące`,
+  rn_pit0:"Ulga dla młodych (PIT-0)",
+  rt_pit0:(lim,last)=>`Przychód z umowy o pracę, zlecenia, praktyk i stażu do ${lim} rocznie bez PIT, do dnia 26. urodzin. Nie obejmuje JDG. Składki ZUS i zdrowotną płacisz normalnie.${last?" W tym roku kończysz 26 lat, więc ulga działa tylko do urodzin.":""}`,
+  pit0Lim2019:"35 636,67 zł (sierpień–grudzień)",
+  re_pit0:x=>`Oszczędzasz ok. ${x} podatku w roku`, re_pit0All:"Przy tej pensji cały przychód mieści się w limicie",
+  rn_ikze:"IKZE – odliczenie wpłat",
+  rt_ikze:(lim,jdg,fut)=>`Wpłaty do ${lim}${jdg?" (limit dla JDG)":""} odliczasz od dochodu w PIT. Przy wypłacie po 65. roku życia płacisz 10% podatku.${fut?" Limit z 2026 r., nowy ogłaszany jest co roku w grudniu.":""}`,
+  re_ikze:x=>`Zwrot przy pełnym limicie: ok. ${x}`,
+  re_ikzeLow0:"Teraz da mały zwrot, bo prawie cały Twój przychód jest zwolniony z PIT. Ulga zacznie się opłacać po wyjściu z PIT-0.",
+  re_ikzeLow:"Przy niskim podatku zwrot będzie mały.",
+  rn_ike:"IKE – brak podatku Belki",
+  rt_ike:(lim,fut,young)=>`Wpłaty do ${lim} rocznie. Przy wypłacie po 60. roku życia nie płacisz 19% podatku od zysków.${young?" Dobra opcja, gdy PIT-0 sprawia, że IKZE daje mało.":""}${fut?" Limit z 2026 r.":""}`,
+  rn_mid:"Ulga dla klasy średniej",
+  rt_mid22:"Tylko w I połowie 2022 r. dla etatów z rocznym przychodem 68 412–133 692 zł. Od lipca 2022 zlikwidowana.",
+  rt_mid:"Obowiązywała tylko w I połowie 2022 r. i została zlikwidowana.",
+  rn_kup:"Podwyższone koszty uzyskania",
+  rt_kup:"300 zł zamiast 250 zł miesięcznie, gdy mieszkasz w innej miejscowości niż zakład pracy. Wystarczy oświadczenie u pracodawcy.",
+  re_kup:x=>`Ok. ${x} rocznie mniej podatku`,
+  rn_aut:"50% koszty autorskie",
+  rt_aut:lim=>`Dla pracy twórczej (np. programowanie, design, teksty). Połowa wynagrodzenia za prawa autorskie to koszt, maks. ${lim} kosztów rocznie. Musi to być zapisane w umowie.`,
+  re_aut0:"Może znacznie obniżyć podatek po wyjściu z PIT-0", re_aut:"Może znacznie obniżyć Twój podatek",
+  rn_net:"Ulga internetowa", rt_net:"Do 760 zł rocznie za internet w domu, tylko w dwóch kolejnych latach. Potrzebna faktura na Twoje nazwisko.",
+  re_net:x=>`Ok. ${x} zwrotu`, re_net0:"Przy pełnym PIT-0 nie da zwrotu",
+  rn_don:"Darowizny i krwiodawstwo", rt_don:"Darowizny na cele pożytku publicznego i za oddaną krew do 6% dochodu. Za litr krwi można odliczyć 130 zł.",
+  rn_kids:"Ulga na dzieci", rt_kids:"1 112,04 zł rocznie na pierwsze i drugie dziecko (przy jednym dziecku jest limit dochodu), 2 000,04 zł na trzecie i 2 700 zł na czwarte i kolejne. Niewykorzystana część może wrócić jako zwrot.",
+  re_kids:x=>`Do ok. ${x} rocznie`,
+  rn_k4:"Ulga dla rodzin 4+", rt_k4:"Od 2022 r. rodzice co najmniej czworga dzieci mają zwolnienie do 85 528 zł przychodu rocznie, jak w PIT-0.",
+  rn_mar:"Wspólne rozliczenie z małżonkiem", rt_mar:"Opłaca się, gdy jedno z was zarabia dużo więcej albo przekracza próg 120 000 zł. Wybierasz w zeznaniu rocznym.",
+  rn_ret:"Ulga na powrót", rt_ret:"Od 2022 r. przez 4 kolejne lata zwolnienie do 85 528 zł przychodu rocznie, jeśli przez 3 lata przed powrotem mieszkałeś za granicą.",
+  rn_sen:"Ulga dla pracujących seniorów", rt_sen:"Od 2022 r. dla kobiet 60+ i mężczyzn 65+, którzy pracują i nie pobierają emerytury. Zwolnienie do 85 528 zł rocznie.",
+  rn_th:"Ulga termomodernizacyjna", rt_th:"Do 53 000 zł wydatków na ocieplenie, okna, pompę ciepła czy fotowoltaikę w domu jednorodzinnym, przez 6 lat.",
+  rn_jdg:"PIT-0 a JDG", rt_jdg:"Ulga dla młodych nie obejmuje przychodów z działalności. Przy JDG zwolnienie dotyczy tylko etatu i zlecenia, a firma płaci podatek wg wybranej formy.",
+  rn_22:"Zerowy PIT dla rodziców 2+ dzieci", rt_22:"Prezydencki projekt z 2025 r.: zwolnienie dla rodziców co najmniej dwojga dzieci i próg podatkowy 140 000 zł. Na dziś to tylko projekt w Sejmie, nie obowiązuje.",
+  aiThinking:"Myślę…", aiDenied:"Nie udzielono zgody na zapytanie.", aiRate:"Za dużo zapytań. Spróbuj za chwilę.", aiFail:"Nie udało się uzyskać odpowiedzi.",
+  aiPrompt:(extra,json)=>`Jesteś doradcą od polskiego podatku PIT. Odpowiadasz po polsku, prostym językiem, bez nagłówków markdown i bez pogrubień.
+Na podstawie profilu poniżej wypisz ulgi i zwolnienia podatkowe w Polsce, które mogą dotyczyć tej osoby w podanym roku podatkowym. Dla każdej: nazwa, jedno-dwa zdania warunków, i jeśli się da, przybliżona korzyść w złotych dla tej osoby. Zacznij od tych, które dają najwięcej. Na końcu krótko: 2-3 konkretne kroki do zrobienia w tym roku. Jeśli rok jest w przyszłości albo nie masz pewnych danych dla tego roku, napisz to wprost. Nie wymyślaj ulg, których nie ma. Maksymalnie ok. 350 słów.
+${extra?`Dodatkowe pytanie użytkownika: ${extra}\n`:""}
+Profil (JSON):
+${json}`
+},
+en: {
+  locale:"en-US", cur:"PLN", dec:".", kAxis:"k", mAxis:"M",
+  months:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+  monthsFull:["January","February","March","April","May","June","July","August","September","October","November","December"],
+  langAria:"Language", reset:"Reset to defaults", profileAria:"Your profile", city:"City", flat:"Home",
+  flatK:"Studio (up to 40 m²)", flatM:"Flat 40–59 m²", age:"Age", bm:"Birth month",
+  heroAria:"Income through the year", costTitle:"Monthly costs",
+  costHint:"Starting amounts come from the chosen city. You can change them freely.",
+  incTitle:"Income and return", incHint:"Salary from an employment contract (umowa o pracę). The PIT-0 limit counts gross pay.",
+  pit2:"PIT-2 form filed (−300 PLN tax advance)", kupLbl:"Work costs (KUP)", kup250:"250 PLN (standard)", kup300:"300 PLN (commute from another town)",
+  reinvest:"Also invest the surplus", balTitle:"Monthly balance", balHint:"Yearly average, after tax and social contributions.",
+  projTitle:"Investment portfolio", pFinal:"End value", pPaid:"Paid in", pGain:"Gain", projAria:"Portfolio value over the years",
+  bankTitle:"Bank account", bankHint:"Balance at the end of each month: salary and other income minus all costs, including transfers to investments.",
+  bankDelta:"Change in 12 months", bankMin:"Lowest balance", bankAvg:"Monthly average", bankAfter:"Monthly after the limit", bankAria:"Bank balance at the end of each month",
+  worthTitle:"Net worth", worthHint:"Bank account plus all assets minus liabilities. Investment payments add up in the “Investments” slider, and liability payments in the “Loan” slider.",
+  addInv:"Add investment", addAsset:"Add other asset", addDebt:"Add liability", worthAria:"Assets, liabilities and net worth by month",
+  wAssets:"Total assets (year end)", wDebts:"Total liabilities (year end)", wStart:"Net worth at start", wDelta:"Change in 12 months",
+  reliefTitle:"Tax reliefs", reliefHint:"Enter a year to see how old you will be and which Polish tax reliefs fit you. Amounts are estimated from the salary in the dashboard.",
+  taxYear:"Tax year", ageInYearLbl:"Age in that year", kids:"Children", kids4:"4 or more", stripAria:"Years with PIT-0 relief",
+  fMarried:"Married", fJdg:"I run a sole business (JDG)", fCreative:"Creative work (e.g. programming)", fReturn:"Moving back to Poland from abroad", fHouse:"I own a house",
+  reliefYesH:"Fits you or worth checking", reliefNoS:"Other reliefs (do not fit you now)",
+  aiTitle:"Ask Claude about reliefs for you",
+  aiHint:"Claude gets your profile from the dashboard (year, age, salary, city, ticked boxes) and describes reliefs that fit you. It answers from its own knowledge, without searching the internet, so check the latest changes on podatki.gov.pl.",
+  aiPh:"Extra question (optional), e.g. is IKZE worth it for me?", aiAsk:"Ask", aiStop:"Stop",
+  tableSum:"Pay month by month",
+  foot:"Where the starting amounts come from: rent is the average offer price from listings by OnGeo.pl (April 2026), plus about 450 PLN of bills for a studio and 550 PLN for a 40–59 m² flat. Food for Kraków is 1,100–1,600 PLN of groceries plus eating out; other cities are adjusted by local price level (estimate). Car is about 1,000 km a month at 7 l/100 km and about 7.3 PLN/l for petrol (e-petrol, August 2026), plus insurance and service. Take-home pay assumes an employment contract and the same salary every month, counted from the January payslip. Employee social contributions (ZUS) 13.71%, health 9%. Pay above the PIT-0 limit or after your 26th birthday is taxed at 12% / 32%, and the yearly tax return uses the 30,000 PLN tax-free amount. The return rate is nominal, without capital gains tax and inflation. The dashboard does not save your data and goes back to defaults when you reload it. This is a planning tool, not tax advice.",
+  u_rate:"% a year", u_years:"years",
+  sl_invest:"Investments", sln_invest:"Total paid into all investments",
+  sl_food:"Food", sln_food:"Groceries and eating out",
+  sl_flat:"Home and bills", sln_flat:"Rent plus bills",
+  sl_loan:"Loan", sln_loan:"Total of liability payments",
+  sl_car:"Car and fuel", sln_car:"Fuel, insurance, service, parking",
+  sl_misc:"Other (misc)", sln_misc:"Phone, subscriptions, clothes, fun",
+  sl_other:"Other net income", sln_other:"E.g. rent, gains, side jobs",
+  sl_rate:"Investment return rate", sln_rate:"Sets the rate for all investments. You can change each one in the Net worth section.",
+  sl_years:"Investment horizon", sl_bank:"Bank balance at start of year", sln_bank:"Balance on 1 January",
+  payNet:"Take-home pay", payGross:"Gross salary", segAria:"Amount type", segNet:"net", segGross:"gross",
+  payNoteNet:b=>`First payslip of the year. That is ${b} gross.`, payNoteGross:n=>`Take-home in the first month: ${n}.`,
+  flatKs:"studio", flatMs:"40–59 m² flat",
+  cityInfo:(c,tp,rent,media,food,misc,car)=>`${c}: a ${tp} costs on average <strong>${rent}</strong> in rent plus about ${media} in bills. Starting values: food ${food}, other ${misc}, car ${car}.`,
+  taxLine:(adv,tax,ref)=>`Tax advances during the year: <strong>${adv}</strong>. After the yearly return with the tax-free amount, the real tax is <strong>${tax}</strong>${ref?`, so about <strong>${ref}</strong> comes back`:""}.`,
+  heroFullT:n=>`This year you will take home ${n}`,
+  heroFullS:(g,zus,h,tax,avg)=>`That is <strong>${g}</strong> gross. After social contributions (${zus}), health insurance (${h}) and income tax (${tax}) you keep on average <strong>${avg}</strong> a month.`,
+  refundLine:r=>` After the yearly tax return about <strong>${r}</strong> of overpaid tax comes back.`,
+  heroEndsJanT:"PIT-0 relief ends in January", heroEndsJanS:tl=>`All pay is taxed from the first payslip. ${tl}`,
+  heroCrossT:i=>`You will go over the PIT-0 limit in ${I18N.en.monthsFull[i]}`,
+  heroCrossS:(n,over,tl)=>`With payslip number ${n} of the year. You will earn <strong>${over}</strong> gross above the limit. ${tl}`,
+  heroBdayT:i=>`PIT-0 relief ends in ${I18N.en.monthsFull[i]}`,
+  heroBdayS:(left,tl)=>`After your 26th birthday your pay is taxed, even though the limit is not used up (${left} left). ${tl}`,
+  heroWithinT:"This year you stay within the PIT-0 limit",
+  heroWithinS:c=>`Your yearly income of <strong>${c}</strong> is below 85,528 PLN, so all of your pay is free of income tax.`,
+  nBefore:"Take-home before the limit", nAfter:"Take-home after the limit", nLeft:"Relief until age 26",
+  leftYears:n=>`about ${n} more ${n===1?"year":"years"}`, leftUntil:m=>`until ${I18N.en.monthsFull[m]}`,
+  nAvg:"Take-home per month", nYearNet:"Take-home per year", nTax:"Income tax per year",
+  netSuffix:" net",
+  warnDeficit:x=>`Your costs are ${x} a month higher than your income.`,
+  warnAfter:x=>`After you go over the limit you will be ${x} short every month. Save a buffer early.`,
+  free:"Left over",
+  kvAvg:"Average take-home pay", kvBefore:"Balance in the first months", kvAfter:"Balance after the limit", kvMonthly:"Monthly balance",
+  kvRate:"Savings rate (investments + surplus)", kvYear:"Yearly surplus",
+  projHint:(n,st,c,y,r)=>`${n} ${n===1?"investment":"investments"}, start ${st}, paying in ${c} a month for ${y} ${y===1?"year":"years"}, ${r}% a year on average.`,
+  projEmpty:"Add an investment in the Net worth section to see the forecast.",
+  thKind:"Type", thName:"Name", thValue:"Value today", thContrib:"Monthly payment", thRate:"% a year",
+  grp_inv:"Investments", grp_asset:"Other assets", grp_debt:"Liabilities", k_inv:"Investment", k_asset:"Other asset", k_debt:"Liability",
+  rate_inv:"Return rate", rate_asset:"Value change (e.g. −10 for a car)", rate_debt:"Interest rate",
+  ariaDebtVal:"Left to pay", ariaPay:"Monthly payment", ariaContrib:"Monthly contribution", del:"Remove",
+  itemsEmpty:"Add your first investment, asset or liability with the buttons below.",
+  n_inv:n=>`Investment ${n}`, n_asset:n=>`Asset ${n}`, n_debt:n=>`Liability ${n}`, nLoan:"Loan", nCar:"Car",
+  limitLbl:"PIT-0 limit: 85,528 PLN", bday:"26th birthday", start:"start", yrShort:i=>`yr ${i}`, valueLbl:"value", paidLbl:"paid in",
+  balanceLbl:"balance", bankLbl:"Bank", overdraft:"Overdraft", legendBank:"Bank account", legendWorth:"Net worth",
+  grossLine:"gross to date", netLine:"take-home to date",
+  thMonth:"Month", thGross:"Gross", thZus:"ZUS", thHealth:"Health", thAdv:"PIT advance", thNet:"Take-home", thCum:"Gross to date", thBank:"Bank balance",
+  ageYears:n=>`${n} years`, stripAge:n=>`age ${n}`,
+  scale:yr=> yr<=2019 ? "18% until September, 17% from October; 32% above 85,528 PLN; tax-free amount 8,000 PLN (falling)"
+    : yr<=2021 ? "17% and 32% above 85,528 PLN; tax-free amount 8,000 PLN (falling for higher income)"
+    : yr===2022 ? "From July 12% and 32% above 120,000 PLN; tax-free amount 30,000 PLN (17% in the first half)"
+    : "12% and 32% above 120,000 PLN; tax-free amount 30,000 PLN",
+  yiScale:"Tax scale", yiBase:"Your taxable income", perYear:" a year", yiNote:"Note", yiFuture:"For years after 2026, the 2026 rules are used.",
+  b_yes:"Fits you", b_maybe:"Check the rules", b_proj:"Draft law", b_no:"Does not fit",
+  reliefCount:n=>`${n} ${n===1?"match":"matches"}`,
+  rn_pit0:"Youth relief (PIT-0)",
+  rt_pit0:(lim,last)=>`Income from an employment contract, mandate contract, internship or traineeship up to ${lim} a year is free of income tax until your 26th birthday. It does not cover a sole business (JDG). You still pay ZUS and health insurance.${last?" You turn 26 this year, so the relief only works until your birthday.":""}`,
+  pit0Lim2019:"35,636.67 PLN (August–December)",
+  re_pit0:x=>`You save about ${x} of tax a year`, re_pit0All:"At this salary all income fits within the limit",
+  rn_ikze:"IKZE – deduct your payments",
+  rt_ikze:(lim,jdg,fut)=>`Payments up to ${lim}${jdg?" (limit for JDG)":""} are deducted from income in your tax return. When you take the money out after 65, you pay 10% tax.${fut?" This is the 2026 limit; a new one is announced every December.":""}`,
+  re_ikze:x=>`Refund with the full limit: about ${x}`,
+  re_ikzeLow0:"It gives a small refund now, because almost all your income is tax-free. It starts to pay off after PIT-0 ends.",
+  re_ikzeLow:"With low tax the refund will be small.",
+  rn_ike:"IKE – no capital gains tax",
+  rt_ike:(lim,fut,young)=>`Payments up to ${lim} a year. If you take the money out after 60, you do not pay the 19% tax on gains.${young?" A good option while PIT-0 makes IKZE give little.":""}${fut?" This is the 2026 limit.":""}`,
+  rn_mid:"Middle-class relief",
+  rt_mid22:"Only in the first half of 2022, for employees with yearly income of 68,412–133,692 PLN. Removed from July 2022.",
+  rt_mid:"It only existed in the first half of 2022 and was removed.",
+  rn_kup:"Higher work costs",
+  rt_kup:"300 PLN instead of 250 PLN a month when you live in a different town than your workplace. A statement to your employer is enough.",
+  re_kup:x=>`About ${x} less tax a year`,
+  rn_aut:"50% author costs",
+  rt_aut:lim=>`For creative work (e.g. programming, design, writing). Half of the pay for copyright counts as costs, up to ${lim} of costs a year. It must be written in your contract.`,
+  re_aut0:"Can cut your tax a lot after PIT-0 ends", re_aut:"Can cut your tax a lot",
+  rn_net:"Internet relief", rt_net:"Up to 760 PLN a year for home internet, only in two years in a row. You need an invoice in your name.",
+  re_net:x=>`About ${x} back`, re_net0:"Gives nothing back while all income is under PIT-0",
+  rn_don:"Donations and blood donation", rt_don:"Donations to public-benefit causes and for donated blood, up to 6% of income. You can deduct 130 PLN per litre of blood.",
+  rn_kids:"Child relief", rt_kids:"1,112.04 PLN a year for the first and second child (with one child there is an income limit), 2,000.04 PLN for the third and 2,700 PLN for the fourth and each next one. The unused part can come back as a refund.",
+  re_kids:x=>`Up to about ${x} a year`,
+  rn_k4:"Relief for families 4+", rt_k4:"Since 2022, parents of at least four children have an exemption of up to 85,528 PLN of income a year, like PIT-0.",
+  rn_mar:"Joint tax return with spouse", rt_mar:"Worth it when one of you earns much more or goes over the 120,000 PLN threshold. You choose it in the yearly return.",
+  rn_ret:"Return relief", rt_ret:"Since 2022, for 4 years in a row, an exemption of up to 85,528 PLN a year if you lived abroad for 3 years before moving back.",
+  rn_sen:"Working senior relief", rt_sen:"Since 2022, for women 60+ and men 65+ who work and do not take a pension. Exemption of up to 85,528 PLN a year.",
+  rn_th:"Home energy upgrade relief", rt_th:"Up to 53,000 PLN of costs for insulation, windows, heat pump or solar panels in a house, over 6 years.",
+  rn_jdg:"PIT-0 and JDG", rt_jdg:"The youth relief does not cover business income. With a JDG only your job and mandate contracts are exempt; the business pays tax by the form you chose.",
+  rn_22:"Zero PIT for parents of 2+ children", rt_22:"A 2025 draft law from the President: exemption for parents of at least two children and a 140,000 PLN tax threshold. For now it is only a draft in the Sejm and does not apply.",
+  aiThinking:"Thinking…", aiDenied:"Permission to ask was not given.", aiRate:"Too many questions. Try again in a moment.", aiFail:"Could not get an answer.",
+  aiPrompt:(extra,json)=>`You are an advisor on Polish personal income tax (PIT). Answer in English, in simple everyday words, with no markdown headers and no bold text.
+Based on the profile below, list the Polish tax reliefs and exemptions that may apply to this person in the given tax year. For each: the name (Polish name in brackets), one or two sentences on the rules, and if possible the rough benefit in PLN for this person. Start with the ones worth the most. At the end, briefly give 2-3 concrete steps to take this year. If the year is in the future or you are not sure about the data for that year, say so clearly. Do not invent reliefs that do not exist. Maximum about 350 words.
+${extra?`Extra question from the user: ${extra}\n`:""}
+Profile (JSON):
+${json}`
+}
+};
+
+let LANG = "pl";
+try { const l = localStorage.getItem("pbd-lang"); if(l && I18N[l]) LANG = l; } catch(e){}
+const t = (k, ...a) => { const v = (I18N[LANG][k] !== undefined ? I18N[LANG][k] : I18N.pl[k]); return typeof v === "function" ? v(...a) : v; };
+const num = n => new Intl.NumberFormat(t("locale"),{maximumFractionDigits:0}).format(Math.round(n));
+const fmt = n => num(n) + " " + t("cur");
+const fmtK = n => Math.abs(n) >= 1e6 ? (n/1e6).toFixed(2).replace(".", t("dec"))+" "+t("mAxis")+" "+t("cur") : fmt(n);
+const dec1 = n => n.toFixed(1).replace(".", t("dec"));
+const axis = v => Math.abs(v)>=1e6 ? (v/1e6).toFixed(1).replace(".",t("dec"))+" "+t("mAxis") : Math.abs(v)>=1000 ? Math.round(v/1000)+" "+t("kAxis") : String(Math.round(v));
+const r50 = n => Math.round(n/50)*50;
+
+const LIMIT = 85528, ZUS_CAP = 282600, THRESH = 120000, BASE_YEAR = 2026;
+
+// Najem: OnGeo.pl, średnie ceny ofertowe, kwiecień 2026 [kawalerka <40 m², 40–59 m²]; idx: poziom cen (Kraków = 1, szacunek)
+const CITIES = {
+  "Warszawa":{k:2960,m:3092,idx:1.08,big:true}, "Kraków":{k:2420,m:3070,idx:1.00,big:true}, "Wrocław":{k:2402,m:2962,idx:0.97,big:true},
+  "Gdańsk":{k:2448,m:3085,idx:0.98,big:true}, "Gdynia":{k:2232,m:2879,idx:0.97,big:true}, "Poznań":{k:2085,m:2635,idx:0.95,big:true},
+  "Szczecin":{k:2229,m:2758,idx:0.94,big:false}, "Łódź":{k:1813,m:2345,idx:0.92,big:false}, "Katowice":{k:1822,m:2412,idx:0.93,big:false},
+  "Gliwice":{k:1834,m:2263,idx:0.91,big:false}, "Bielsko-Biała":{k:1849,m:2243,idx:0.91,big:false}, "Lublin":{k:2150,m:2588,idx:0.92,big:false},
+  "Rzeszów":{k:2060,m:2312,idx:0.91,big:false}, "Opole":{k:2096,m:2448,idx:0.90,big:false}, "Bydgoszcz":{k:1905,m:2280,idx:0.90,big:false},
+  "Toruń":{k:1768,m:2087,idx:0.90,big:false}, "Białystok":{k:1800,m:2119,idx:0.89,big:false}, "Olsztyn":{k:2061,m:2332,idx:0.89,big:false},
+  "Kielce":{k:1806,m:2165,idx:0.88,big:false}
+};
+const MEDIA = {k:450, m:550};
+function cityCosts(city, type){
+  const c = CITIES[city];
+  return { flat:r50(c[type]+MEDIA[type]), food:r50(1500*c.idx), misc:r50(900*c.idx), car:c.big?850:750 };
+}
+
+const COSTS = [
+  {id:"invest", min:0, max:10000, step:100, color:"--invest"},
+  {id:"food",   min:0, max:4000,  step:50,  color:"--c-food"},
+  {id:"flat",   min:0, max:7000,  step:50,  color:"--c-flat"},
+  {id:"loan",   min:0, max:5000,  step:50,  color:"--c-loan"},
+  {id:"car",    min:0, max:3000,  step:50,  color:"--c-car"},
+  {id:"misc",   min:0, max:4000,  step:50,  color:"--c-misc"}
+];
+const INCS = [
+  {id:"pay",   min:0, max:0, step:100, color:"--income", unit:"cur"},
+  {id:"other", min:0, max:10000, step:100, color:"--income", unit:"cur"},
+  {id:"rate",  min:0, max:25, step:0.5, color:"--invest", unit:"u_rate"},
+  {id:"years", min:1, max:30, step:1, color:"--invest", unit:"u_years"}
+];
+const BANK = {id:"bank", min:0, max:100000, step:500, color:"--invest", unit:"cur"};
+const PAY_RANGE = {netto:{min:2500,max:20000}, brutto:{min:3000,max:30000}};
+const ALL_SLIDERS = () => [...COSTS, ...INCS, BANK];
+
+function defaults(){
+  const s = {city:"Kraków", flatType:"k", age:24, bm:6, mode:"netto",
+    invest:2000, loan:0, other:0, rate:12, years:10, pit2:true, kup:"250", reinvest:false, brutto:0, bank:10000,
+    taxYear:2026, kids:0, fMarried:false, fJdg:false, fCreative:false, fReturn:false, fHouse:false,
+    items:[
+      {id:1, kind:"inv",   name:t("n_inv",1), value:10000, contrib:1200, rate:12},
+      {id:2, kind:"inv",   name:t("n_inv",2), value:5000,  contrib:800,  rate:12},
+      {id:3, kind:"asset", name:t("nCar"),    value:30000, contrib:0,    rate:-10}
+    ]};
+  Object.assign(s, cityCosts(s.city, s.flatType));
+  s.brutto = solveBrutto(10000, s);
+  return s;
+}
+
+function reliefMonths(s){ if(s.age >= 26) return 0; if(s.age === 25) return Math.max(0, s.bm - 1); return 12; }
+
+function calcYear(s){
+  const b = s.brutto, kup = +s.kup, rel = reliefMonths(s);
+  let cum=0, cumEx=0, cumBase=0, zusBaseCum=0, months=[], crossIdx=-1, crossFrac=null;
+  for(let m=0;m<12;m++){
+    const capBase = Math.min(b, Math.max(0, ZUS_CAP - zusBaseCum)); zusBaseCum += capBase;
+    const zus = capBase*0.1126 + b*0.0245;
+    const health = (b - zus)*0.09;
+    let exempt = 0;
+    if(m < rel){
+      exempt = Math.min(b, Math.max(0, LIMIT - cumEx));
+      if(exempt < b && crossIdx<0){ crossIdx = m; crossFrac = m + exempt/b; }
+      cumEx += exempt;
+    }
+    const taxable = b - exempt;
+    cum += b;
+    let base=0, adv=0;
+    if(taxable>0 && b>0){
+      const zusShare = zus*taxable/b;
+      base = Math.max(0, Math.round(taxable - zusShare - Math.min(kup, Math.max(0,taxable - zusShare))));
+      const low = Math.max(0, Math.min(base, THRESH - cumBase)), high = base - low;
+      adv = Math.max(0, Math.round(low*0.12 + high*0.32 - (s.pit2?300:0)));
+      cumBase += base;
+    }
+    months.push({b, zus, health, adv, net:b-zus-health-adv, cum, taxable, exempt});
+  }
+  const annualTax = cumBase<=THRESH ? Math.max(0, cumBase*0.12 - 3600) : 10800 + (cumBase-THRESH)*0.32;
+  const advSum = months.reduce((a,x)=>a+x.adv,0);
+  return {months, rel, crossIdx, crossFrac, cum, cumEx, cumBase, annualTax, advSum, refund: advSum - annualTax};
+}
+function solveBrutto(netTarget, s){
+  let lo=0, hi=80000;
+  for(let i=0;i<60;i++){ const mid=(lo+hi)/2; const n = calcYear(Object.assign({}, s, {brutto:mid})).months[0].net; if(n < netTarget) lo = mid; else hi = mid; }
+  return Math.round((lo+hi)/2);
+}
+const firstNet = s => calcYear(s).months[0].net;
+
+const ACOL = ["--a1","--a2","--a3","--a4","--a5","--a6"], DCOL = ["--d1","--d2","--d3"];
+function itemColor(it){
+  const list = state.items.filter(x=>x.kind==="debt"?it.kind==="debt":x.kind!=="debt"&&it.kind!=="debt");
+  const i = list.indexOf(it); return it.kind==="debt" ? DCOL[i%DCOL.length] : ACOL[i%ACOL.length];
+}
+function nextId(){ return state.items.reduce((a,x)=>Math.max(a,x.id),0)+1; }
+function recalcTotals(){
+  state.invest = state.items.filter(x=>x.kind==="inv").reduce((a,x)=>a+(+x.contrib||0),0);
+  state.loan   = state.items.filter(x=>x.kind==="debt").reduce((a,x)=>a+(+x.contrib||0),0);
+}
+function setTotal(kind, v){
+  let rows = state.items.filter(x=>x.kind===kind);
+  if(!rows.length){
+    if(v<=0){ recalcTotals(); return; }
+    const n = kind==="inv" ? {kind, name:t("n_inv",1), value:0, contrib:0, rate:state.rate} : {kind, name:t("nLoan"), value:0, contrib:0, rate:8};
+    n.id = nextId(); state.items.push(n); rows=[n];
+  }
+  const sum = rows.reduce((a,x)=>a+(+x.contrib||0),0);
+  if(sum>0){ let acc=0; rows.forEach((x,i)=>{ x.contrib = i<rows.length-1 ? Math.round(x.contrib*v/sum) : 0; acc+=x.contrib; }); rows[rows.length-1].contrib = Math.max(0, v-acc); }
+  else { rows.forEach((x,i)=>x.contrib = i===0 ? v : 0); }
+  recalcTotals(); renderItems();
+}
+function simItems(s, extra, months){
+  const inv = s.items.filter(x=>x.kind==="inv");
+  const csum = inv.reduce((a,x)=>a+(+x.contrib||0),0);
+  const out = s.items.map(it=>({it, vals:[+it.value||0], paid:[]}));
+  for(let m=0;m<months;m++){
+    out.forEach(o=>{
+      const it=o.it, v=o.vals[o.vals.length-1], r=(+it.rate||0)/100;
+      if(it.kind==="inv"){
+        const share = csum>0 ? (+it.contrib||0)/csum : 1/inv.length;
+        o.vals.push(v*Math.pow(1+r,1/12) + (+it.contrib||0) + extra*share);
+      } else if(it.kind==="asset"){
+        o.vals.push(v*Math.pow(1+r,1/12));
+      } else {
+        const start = +it.value||0, pay = +it.contrib||0;
+        if(start<=0){ o.vals.push(0); o.paid.push(pay); }
+        else { const owed = v*(1+r/12); const p = Math.min(pay, owed); o.vals.push(owed-p); o.paid.push(p); }
+      }
+    });
+  }
+  return out;
+}
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+
+function renderItems(){
+  const tb = document.getElementById("items"); if(!tb) return;
+  let h = `<tr><th>${t("thKind")}</th><th>${t("thName")}</th><th>${t("thValue")}</th><th>${t("thContrib")}</th><th>${t("thRate")}</th><th></th></tr>`;
+  ["inv","asset","debt"].forEach(k=>{
+    const rows = state.items.filter(x=>x.kind===k);
+    if(!rows.length) return;
+    h += `<tr class="group"><td colspan="6">${t("grp_"+k)}</td></tr>`;
+    rows.forEach(it=>{
+      const rt = t("rate_"+k);
+      h += `<tr data-id="${it.id}">
+        <td class="kind"><i style="background:var(${itemColor(it)})"></i>${t("k_"+k)}</td>
+        <td><input type="text" data-f="name" value="${esc(it.name)}" aria-label="${t("thName")}"></td>
+        <td><input type="number" data-f="value" step="100" min="0" value="${it.value}" aria-label="${k==="debt"?t("ariaDebtVal"):t("thValue")}"></td>
+        <td>${k==="asset"?`<span class="na">—</span>`:`<input type="number" data-f="contrib" step="50" min="0" value="${it.contrib}" aria-label="${k==="debt"?t("ariaPay"):t("ariaContrib")}">`}</td>
+        <td><input type="number" data-f="rate" step="0.5" value="${it.rate}" title="${rt}" aria-label="${rt}"></td>
+        <td><button class="x" type="button" data-del="${it.id}" aria-label="${t("del")} ${esc(it.name)}">×</button></td></tr>`;
+    });
+  });
+  if(!state.items.length) h += `<tr><td colspan="6" style="color:var(--muted)">${t("itemsEmpty")}</td></tr>`;
+  tb.innerHTML = h;
+}
+
+// ---------- ulgi ----------
+const IKZE = {2019:5718, 2020:6272.40, 2021:6272.40, 2022:6966, 2023:8322, 2024:9388.80, 2025:10407.60, 2026:11304};
+const IKZE_JDG = {2021:9408.60, 2022:10449, 2023:12483, 2024:14083.20, 2025:15611.40, 2026:16956};
+const IKE = {2019:14295, 2020:15681, 2021:15681, 2022:17766, 2023:20805, 2024:23472, 2025:26019, 2026:28260};
+const known = (tbl, yr) => tbl[Math.min(Math.max(yr, 2019), 2026)];
+function taxOf(x, yr){
+  x = Math.max(0, x);
+  if(yr >= 2022) return x<=120000 ? Math.max(0, x*0.12-3600) : 10800 + (x-120000)*0.32;
+  const r = yr===2019 ? 0.1775 : 0.17;
+  const red = x<=8000 ? 1360 : x<=13000 ? 1360-834.88*(x-8000)/5000 : x<=85528 ? 525.12 : x<=127000 ? Math.max(0,525.12-525.12*(x-85528)/41472) : 0;
+  return x<=85528 ? Math.max(0, x*r - red) : 85528*r - red + (x-85528)*0.32;
+}
+function reliefs(s){
+  const yr = s.taxYear, age = s.age + (yr - BASE_YEAR), fut = yr > 2026, young = age < 26;
+  const y = calcYear(Object.assign({}, s, {age})), y30 = calcYear(Object.assign({}, s, {age:30}));
+  const base = y.cumBase, tYr = Math.min(yr, 2026);
+  const save = d => tYr>=2022 ? taxOf(base, tYr) - taxOf(base - Math.min(d, base), tYr) : Math.min(d,base)*(base>85528?0.32:0.17);
+  const L = [], add = (id, st, text, est) => L.push({id, st, name:t("rn_"+id), text, est:est||""});
+
+  if(young && yr >= 2019){
+    const sv = Math.max(0, y30.annualTax - y.annualTax);
+    add("pit0", "yes", t("rt_pit0", yr===2019 ? t("pit0Lim2019") : fmt(LIMIT), age===25), sv>0 ? t("re_pit0", fmt(sv)) : t("re_pit0All"));
+  }
+  const ikzeLim = s.fJdg && yr>=2021 ? known(IKZE_JDG, yr) : known(IKZE, yr), ikzeSave = save(ikzeLim);
+  add("ikze", ikzeSave>50 ? "yes" : "maybe", t("rt_ikze", fmt(ikzeLim), s.fJdg, fut), ikzeSave>50 ? t("re_ikze", fmt(ikzeSave)) : (young ? t("re_ikzeLow0") : t("re_ikzeLow")));
+  add("ike", "yes", t("rt_ike", fmt(known(IKE, yr)), fut, young));
+  const annualB = s.brutto*12;
+  if(yr===2022) add("mid", (annualB>=68412 && annualB<=133692 && !young) ? "yes" : "no", t("rt_mid22"));
+  else add("mid", "no", t("rt_mid"));
+  add("kup", s.kup==="300" ? "yes" : "maybe", t("rt_kup"), base>0 ? t("re_kup", fmt(save(600))) : "");
+  add("aut", s.fCreative ? "yes" : "no", t("rt_aut", fmt(yr>=2022?120000:85528)), s.fCreative && base>0 ? (young ? t("re_aut0") : t("re_aut")) : "");
+  add("net", base>0 ? "yes" : "maybe", t("rt_net"), base>0 ? t("re_net", fmt(save(760))) : t("re_net0"));
+  add("don", "maybe", t("rt_don"));
+  add("kids", s.kids>0 ? "yes" : "no", t("rt_kids"), s.kids>0 ? t("re_kids", fmt([0,1112.04,2224.08,4224.12,6924.12][Math.min(4,s.kids)])) : "");
+  add("k4", yr>=2022 && s.kids>=4 ? "yes" : "no", t("rt_k4"));
+  add("mar", s.fMarried ? "maybe" : "no", t("rt_mar"));
+  add("ret", yr>=2022 && s.fReturn ? "yes" : "no", t("rt_ret"));
+  add("sen", yr>=2022 && age>=60 ? "maybe" : "no", t("rt_sen"));
+  add("th", s.fHouse ? "yes" : "no", t("rt_th"));
+  if(s.fJdg && young) add("jdg", "maybe", t("rt_jdg"));
+  add("22", "proj", t("rt_22"));
+  return {list:L, age, y, base};
+}
+function renderReliefs(){
+  const s = state, r = reliefs(s), yr = s.taxYear;
+  document.getElementById("ageInYear").textContent = t("ageYears", r.age);
+  let strip = "";
+  for(let k=-2;k<=6;k++){
+    const Y = BASE_YEAR + k, a = s.age + k, on = Y>=2019 && a<26;
+    strip += `<button type="button" data-year="${Y}" class="${on?"on":""} ${Y===yr?"sel":""}" aria-pressed="${Y===yr}">${Y}<small>${t("stripAge", a)}${on?" · PIT-0":""}</small></button>`;
+  }
+  document.getElementById("yearStrip").innerHTML = strip;
+  document.getElementById("yearInfo").innerHTML = `
+    <span class="k">${t("yiScale")}</span><span class="v" style="font-weight:500">${t("scale", Math.min(yr,2026))}</span>
+    <span class="k">${t("yiBase")}</span><span class="v">${fmt(r.base)}${t("perYear")}</span>
+    ${yr>2026?`<span class="k">${t("yiNote")}</span><span class="v" style="font-weight:500">${t("yiFuture")}</span>`:""}`;
+  const badge = st => `<span class="badge b-${st}">${t("b_"+st)}</span>`;
+  const card = o => `<div class="rcard ${o.st==="no"?"no":""}"><h3>${o.name}${badge(o.st)}</h3><p>${o.text}</p>${o.est?`<div class="est">${o.est}</div>`:""}</div>`;
+  const order = {yes:0, maybe:1, proj:2};
+  const yes = r.list.filter(o=>o.st!=="no").sort((a,b)=>order[a.st]-order[b.st]);
+  const no = r.list.filter(o=>o.st==="no");
+  document.getElementById("reliefYes").innerHTML = yes.map(card).join("");
+  document.getElementById("reliefNo").innerHTML = no.map(card).join("");
+  document.getElementById("reliefNoWrap").classList.toggle("hidden", !no.length);
+  document.getElementById("reliefCount").textContent = t("reliefCount", r.list.filter(o=>o.st==="yes").length);
+}
+
+// ---------- stan (bez zapisu: każde otwarcie zaczyna od czystych danych) ----------
+let state = defaults();
+recalcTotals();
+
+function payValue(){ return state.mode==="netto" ? Math.round(firstNet(state)/10)*10 : state.brutto; }
+function limits(c){ return c.id==="pay" ? PAY_RANGE[state.mode] : c; }
+
+function buildSlider(c, host){
+  const w = document.createElement("div"); w.className="sl";
+  const seg = c.id==="pay" ? `<span class="seg" role="group" id="paySeg"><button type="button" data-mode="netto"></button><button type="button" data-mode="brutto"></button></span>` : "";
+  w.innerHTML = `<div class="row"><label for="r-${c.id}"><span class="dot" style="background:var(${c.color})"></span><span id="lbl-${c.id}"></span></label>${seg}
+    <span class="num"><input type="number" id="n-${c.id}" step="${c.step}"> <span id="unit-${c.id}"></span></span></div>
+    <input type="range" id="r-${c.id}" step="${c.step}" style="--fill:var(${c.color})">
+    <small id="note-${c.id}"></small>`;
+  host.appendChild(w);
+  const r = w.querySelector("input[type=range]"), n = w.querySelector("input[type=number]");
+  const set = v => {
+    const lim = limits(c); v = Math.min(lim.max, Math.max(lim.min, +v||0));
+    if(c.id==="pay"){ state.brutto = state.mode==="netto" ? solveBrutto(v, state) : v; }
+    else if(c.id==="invest") setTotal("inv", v);
+    else if(c.id==="loan") setTotal("debt", v);
+    else if(c.id==="rate"){ state.rate=v; state.items.forEach(it=>{ if(it.kind==="inv") it.rate=v; }); renderItems(); }
+    else state[c.id]=v;
+    syncAll(); update();
+  };
+  r.addEventListener("input", e=>set(e.target.value));
+  n.addEventListener("change", e=>set(e.target.value));
+  w.querySelectorAll(".seg button").forEach(btn=>btn.addEventListener("click", ()=>{ state.mode = btn.dataset.mode; syncAll(); update(); }));
+}
+function labelSlider(c){
+  const name = c.id==="pay" ? (state.mode==="netto" ? t("payNet") : t("payGross")) : t("sl_"+c.id);
+  document.getElementById("lbl-"+c.id).textContent = name;
+  document.getElementById("n-"+c.id).setAttribute("aria-label", name);
+  document.getElementById("unit-"+c.id).textContent = t(c.unit || "cur");
+  let note = I18N[LANG]["sln_"+c.id] !== undefined ? t("sln_"+c.id) : "";
+  if(c.id==="pay") note = state.mode==="netto" ? t("payNoteNet", fmt(state.brutto)) : t("payNoteGross", fmt(firstNet(state)));
+  document.getElementById("note-"+c.id).textContent = note;
+}
+function sync(c){
+  const r = document.getElementById("r-"+c.id), n = document.getElementById("n-"+c.id), lim = limits(c);
+  const v = c.id==="pay" ? payValue() : state[c.id];
+  r.min = n.min = lim.min; r.max = n.max = lim.max;
+  r.value = v; n.value = v;
+  r.style.setProperty("--p", Math.min(100,Math.max(0,(v-lim.min)/(lim.max-lim.min)*100))+"%");
+  labelSlider(c);
+  if(c.id==="pay"){
+    const sg = document.getElementById("paySeg"); sg.setAttribute("aria-label", t("segAria"));
+    sg.querySelectorAll("button").forEach(b=>{ b.textContent = b.dataset.mode==="netto" ? t("segNet") : t("segGross"); b.setAttribute("aria-pressed", b.dataset.mode===state.mode); });
+  }
+}
+COSTS.forEach(c=>buildSlider(c, document.getElementById("costSliders")));
+INCS.forEach(c=>buildSlider(c, document.getElementById("incSliders")));
+buildSlider(BANK, document.getElementById("bankSlider"));
+
+const cityEl = document.getElementById("city"), typeEl = document.getElementById("flatType"),
+      ageEl = document.getElementById("age"), bmEl = document.getElementById("bm"), bmWrap = document.getElementById("bmWrap");
+Object.keys(CITIES).forEach(c=>{ const o=document.createElement("option"); o.value=o.textContent=c; cityEl.appendChild(o); });
+for(let i=0;i<12;i++){ const o=document.createElement("option"); o.value=i+1; bmEl.appendChild(o); }
+function applyCity(){ Object.assign(state, cityCosts(state.city, state.flatType)); }
+cityEl.addEventListener("change", ()=>{ state.city = cityEl.value; applyCity(); syncAll(); update(); });
+typeEl.addEventListener("change", ()=>{ state.flatType = typeEl.value; applyCity(); syncAll(); update(); });
+ageEl.addEventListener("change", ()=>{ state.age = Math.min(70, Math.max(18, Math.round(+ageEl.value||24))); syncAll(); update(); });
+bmEl.addEventListener("change", ()=>{ state.bm = +bmEl.value; syncAll(); update(); });
+
+const pit2El = document.getElementById("pit2"), kupEl = document.getElementById("kup"), reEl = document.getElementById("reinvest");
+pit2El.addEventListener("change", ()=>{state.pit2=pit2El.checked; syncAll(); update();});
+kupEl.addEventListener("change", ()=>{state.kup=kupEl.value; syncAll(); update();});
+reEl.addEventListener("change", ()=>{state.reinvest=reEl.checked; update();});
+document.getElementById("reset").addEventListener("click", ()=>{ state=defaults(); recalcTotals(); renderItems(); syncRelief(); syncAll(); update(); });
+
+const itemsEl = document.getElementById("items");
+itemsEl.addEventListener("input", e=>{
+  const tr = e.target.closest("tr[data-id]"); if(!tr) return;
+  const it = state.items.find(x=>x.id===+tr.dataset.id), f = e.target.dataset.f; if(!it||!f) return;
+  it[f] = f==="name" ? e.target.value : (+e.target.value||0);
+  if((f==="contrib"||f==="value") && it[f]<0) it[f]=0;
+  recalcTotals(); syncAll(); update();
+});
+itemsEl.addEventListener("click", e=>{
+  const id = e.target.dataset.del; if(!id) return;
+  state.items = state.items.filter(x=>x.id!==+id); recalcTotals(); renderItems(); syncAll(); update();
+});
+document.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click", ()=>{
+  const k = b.dataset.add, n = state.items.filter(x=>x.kind===k).length + 1;
+  const base = {inv:{name:t("n_inv",n), value:0, contrib:0, rate:state.rate}, asset:{name:t("n_asset",n), value:0, contrib:0, rate:0}, debt:{name:t("n_debt",n), value:0, contrib:0, rate:8}}[k];
+  state.items.push(Object.assign({id:nextId(), kind:k}, base)); renderItems(); syncAll(); update();
+  const last = [...itemsEl.querySelectorAll('input[data-f="name"]')].pop(); if(last){ last.focus(); last.select(); }
+}));
+
+const yearEl = document.getElementById("taxYear"), kidsEl = document.getElementById("kids");
+const FLAGS = ["fMarried","fJdg","fCreative","fReturn","fHouse"];
+function syncRelief(){ yearEl.value = state.taxYear; kidsEl.value = Math.min(4,state.kids); FLAGS.forEach(f=>document.getElementById(f).checked = !!state[f]); }
+yearEl.addEventListener("change", ()=>{ state.taxYear = Math.min(2040, Math.max(2019, Math.round(+yearEl.value||2026))); yearEl.value=state.taxYear; renderReliefs(); });
+kidsEl.addEventListener("change", ()=>{ state.kids = +kidsEl.value; renderReliefs(); });
+FLAGS.forEach(f=>document.getElementById(f).addEventListener("change", e=>{ state[f]=e.target.checked; renderReliefs(); }));
+document.getElementById("yearStrip").addEventListener("click", e=>{ const b=e.target.closest("button[data-year]"); if(!b) return; state.taxYear=+b.dataset.year; syncRelief(); renderReliefs(); });
+
+// ---------- język ----------
+function applyStatic(){
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("[data-i18n]").forEach(el=>{ el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el=>{ el.placeholder = t(el.dataset.i18nPh); });
+  document.querySelectorAll("[data-i18n-aria]").forEach(el=>{ el.setAttribute("aria-label", t(el.dataset.i18nAria)); });
+  document.querySelectorAll("[data-lang]").forEach(b=>b.setAttribute("aria-pressed", b.dataset.lang===LANG));
+  [...bmEl.options].forEach((o,i)=>o.textContent = t("monthsFull")[i]);
+}
+document.querySelectorAll("[data-lang]").forEach(b=>b.addEventListener("click", ()=>{
+  LANG = b.dataset.lang; try{ localStorage.setItem("pbd-lang", LANG); }catch(e){}
+  applyStatic(); renderItems(); syncAll(); update();
+}));
+
+// ---------- Claude (tylko na claude.ai) ----------
+(async ()=>{
+  if(!window.claude || !window.claude.use) return;
+  let sample = null; try { sample = await window.claude.use("sample"); } catch(e){}
+  if(!sample) return;
+  const box = document.getElementById("aiBox"), btn = document.getElementById("aiAsk"), stop = document.getElementById("aiStop"), out = document.getElementById("aiOut"), q = document.getElementById("aiQ");
+  box.classList.remove("hidden");
+  let ctl = null;
+  stop.addEventListener("click", ()=>ctl && ctl.abort());
+  btn.addEventListener("click", async ()=>{
+    const s = state, r = reliefs(s);
+    const profile = {
+      tax_year: s.taxYear, age_in_that_year: r.age, city: s.city, contract: "umowa o pracę",
+      gross_salary_month_PLN: s.brutto, other_net_income_month_PLN: s.other, taxable_income_year_PLN: Math.round(r.base),
+      children: s.kids, married: s.fMarried, runs_JDG: s.fJdg, creative_work: s.fCreative, returning_from_abroad: s.fReturn, owns_house: s.fHouse,
+      work_costs_KUP_month: +s.kup, loan_payment_month: s.loan, investing_month: s.invest,
+      assets: s.items.map(i=>({type:i.kind, name:i.name, value:i.value}))
+    };
+    ctl = new AbortController();
+    btn.disabled = true; stop.classList.remove("hidden"); out.classList.remove("hidden"); out.textContent = t("aiThinking");
+    try {
+      await sample(t("aiPrompt", q.value.trim(), JSON.stringify(profile, null, 1)), { signal: ctl.signal, modelTier: "default", onText: ({text}) => { out.textContent = text; } });
+    } catch(e){
+      const keep = e && e.text ? e.text : "";
+      const msg = e && e.code==="not_granted" ? t("aiDenied") : e && e.code==="rate_limited" ? t("aiRate") : e && e.code==="cancelled" ? "" : t("aiFail");
+      out.textContent = keep + (msg ? (keep?"\n\n":"") + msg : "");
+      if(e && e.code==="not_granted") box.classList.add("hidden");
+    } finally { btn.disabled = false; stop.classList.add("hidden"); }
+  });
+})();
+
+function syncAll(){
+  ALL_SLIDERS().forEach(sync);
+  pit2El.checked=state.pit2; kupEl.value=state.kup; reEl.checked=state.reinvest;
+  cityEl.value=state.city; typeEl.value=state.flatType; ageEl.value=state.age; bmEl.value=state.bm;
+  bmWrap.classList.toggle("hidden", state.age!==25);
+  const c = CITIES[state.city], cc = cityCosts(state.city, state.flatType);
+  document.getElementById("cityInfo").innerHTML = t("cityInfo", state.city, state.flatType==="k"?t("flatKs"):t("flatMs"), fmt(c[state.flatType]), fmt(MEDIA[state.flatType]), fmt(cc.food), fmt(cc.misc), fmt(cc.car));
+}
+
+// ---------- wykresy ----------
+const M = () => t("months");
+function heroChart(y){
+  const W=640,H=260,pl=58,pr=16,pt=18,pb=32;
+  const showLimit = y.rel > 0;
+  const maxY = Math.max(y.cum, showLimit?LIMIT:0)*1.12 || 1;
+  const x = i => pl + (W-pl-pr)*i/12, yy = v => pt + (H-pt-pb)*(1 - v/maxY);
+  const pts = [[0,0], ...y.months.map((m,i)=>[i+1,m.cum])];
+  const line = pts.map(p=>`${x(p[0]).toFixed(1)},${yy(p[1]).toFixed(1)}`).join(" ");
+  const area = `${x(0)},${yy(0)} ${line} ${x(12)},${yy(0)}`;
+  let g = "";
+  for(let k=0;k<=4;k++){ const v = maxY/1.12*k/4; g += `<line x1="${pl}" x2="${W-pr}" y1="${yy(v)}" y2="${yy(v)}" stroke="var(--line)"/><text x="${pl-8}" y="${yy(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${axis(v)}</text>`; }
+  M().forEach((mn,i)=>{ g += `<text x="${x(i+1)}" y="${H-10}" text-anchor="middle" font-size="12" fill="var(--muted)">${mn}</text>`; });
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}`;
+  if(showLimit){
+    const relEnd = y.rel < 12 ? x(y.rel) : W;
+    svg += `<defs><clipPath id="ok"><rect x="0" y="${yy(LIMIT)}" width="${relEnd}" height="${H}"/></clipPath></defs>
+      <polygon points="${area}" fill="var(--cost)" opacity=".18"/>
+      <polygon points="${area}" fill="var(--income)" opacity=".3" clip-path="url(#ok)"/>
+      <line x1="${pl}" x2="${W-pr}" y1="${yy(LIMIT)}" y2="${yy(LIMIT)}" stroke="var(--limit)" stroke-width="2" stroke-dasharray="6 5"/>
+      <text x="${pl+6}" y="${yy(LIMIT)-8}" font-size="13" font-weight="700" fill="var(--limit)">${t("limitLbl")}</text>`;
+    if(y.rel < 12) svg += `<line x1="${x(y.rel)}" x2="${x(y.rel)}" y1="${pt}" y2="${yy(0)}" stroke="var(--limit)" stroke-width="1.5" stroke-dasharray="3 3"/><text x="${x(y.rel)+6}" y="${pt+12}" font-size="12" font-weight="700" fill="var(--limit)">${t("bday")}</text>`;
+    svg += `<polyline points="${line}" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round"/>`;
+    if(y.crossFrac!==null){ const cx = x(y.crossFrac), cy = yy(LIMIT);
+      svg += `<line x1="${cx}" x2="${cx}" y1="${cy}" y2="${yy(0)}" stroke="var(--limit)" stroke-width="1.5"/><circle cx="${cx}" cy="${cy}" r="7" fill="var(--panel)" stroke="var(--limit)" stroke-width="3"/>`; }
+  } else {
+    let cn = 0; const npts = [[0,0], ...y.months.map((m,i)=>{ cn += m.net; return [i+1, cn]; })];
+    const nline = npts.map(p=>`${x(p[0]).toFixed(1)},${yy(p[1]).toFixed(1)}`).join(" ");
+    svg += `<polygon points="${x(0)},${yy(0)} ${nline} ${x(12)},${yy(0)}" fill="var(--income)" opacity=".22"/>
+      <polyline points="${line}" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round"/>
+      <polyline points="${nline}" fill="none" stroke="var(--income)" stroke-width="2.5" stroke-linejoin="round"/>
+      <text x="${x(12)-4}" y="${yy(y.cum)-8}" text-anchor="end" font-size="12" font-weight="700" fill="var(--ink)">${t("grossLine")}</text>
+      <text x="${x(12)-4}" y="${yy(cn)+18}" text-anchor="end" font-size="12" font-weight="700" fill="var(--income)">${t("netLine")}</text>`;
+  }
+  return svg + `</svg>`;
+}
+function projChart(series, paid){
+  const W=560,H=230,pl=64,pr=12,pt=12,pb=28, n=series.length-1;
+  const maxY = Math.max(...series)*1.08 || 1;
+  const x = i => pl + (W-pl-pr)*i/n, yy = v => pt + (H-pt-pb)*(1-v/maxY);
+  const val = series.map((v,i)=>`${x(i).toFixed(1)},${yy(v).toFixed(1)}`).join(" ");
+  const pd = paid.map((v,i)=>`${x(i).toFixed(1)},${yy(v).toFixed(1)}`).join(" ");
+  let g="";
+  for(let k=0;k<=4;k++){ const v=maxY/1.08*k/4; g+=`<line x1="${pl}" x2="${W-pr}" y1="${yy(v)}" y2="${yy(v)}" stroke="var(--line)"/><text x="${pl-8}" y="${yy(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${axis(v)}</text>`; }
+  const stepLbl = Math.ceil(n/10);
+  for(let i=0;i<=n;i+=stepLbl){ g+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="12" fill="var(--muted)">${i===0?t("start"):t("yrShort",i)}</text>`; }
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}
+    <polygon points="${x(0)},${yy(0)} ${val} ${x(n)},${yy(0)}" fill="var(--invest)" opacity=".16"/>
+    <polygon points="${x(0)},${yy(0)} ${pd} ${x(n)},${yy(0)}" fill="var(--invest)" opacity=".22"/>
+    <polyline points="${val}" fill="none" stroke="var(--invest)" stroke-width="2.5"/>
+    <polyline points="${pd}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <text x="${x(n)-4}" y="${yy(series[n])-8}" text-anchor="end" font-size="12" font-weight="700" fill="var(--invest)">${t("valueLbl")}</text>
+    <text x="${x(n)-4}" y="${yy(paid[n])+16}" text-anchor="end" font-size="12" fill="var(--muted)">${t("paidLbl")}</text></svg>`;
+}
+function bankChart(start, bal, flows){
+  const W=640,H=250,pl=60,pr=12,pt=16,pb=30;
+  const all=[start,...bal,0]; let mx=Math.max(...all), mn=Math.min(...all);
+  const pad=(mx-mn)*0.1||1000; mx+=pad; mn=Math.min(0,mn-pad*(mn<0?1:0));
+  const x=i=>pl+(W-pl-pr)*(i+0.5)/12, yy=v=>pt+(H-pt-pb)*(mx-v)/(mx-mn), bw=(W-pl-pr)/12*0.55;
+  let g="";
+  for(let k=0;k<=4;k++){ const v=mn+(mx-mn)*k/4; g+=`<line x1="${pl}" x2="${W-pr}" y1="${yy(v)}" y2="${yy(v)}" stroke="var(--line)"/><text x="${pl-8}" y="${yy(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${axis(v)}</text>`; }
+  if(mn<0) g+=`<line x1="${pl}" x2="${W-pr}" y1="${yy(0)}" y2="${yy(0)}" stroke="var(--ink)" stroke-width="1"/>`;
+  bal.forEach((v,i)=>{ const prev=i?bal[i-1]:start, top=Math.max(v,prev), bot=Math.min(v,prev);
+    g+=`<rect x="${x(i)-bw/2}" y="${yy(top)}" width="${bw}" height="${Math.max(1.5,yy(bot)-yy(top))}" rx="2" fill="var(${flows[i]>=0?'--income':'--cost'})" opacity=".85"><title>${M()[i]}: ${flows[i]>=0?'+':'−'}${fmt(Math.abs(flows[i]))}, ${t("balanceLbl")} ${fmt(v)}</title></rect>`;
+    g+=`<text x="${x(i)}" y="${H-10}" text-anchor="middle" font-size="12" fill="var(--muted)">${M()[i]}</text>`; });
+  const line=[`${pl},${yy(start)}`,...bal.map((v,i)=>`${x(i)+bw/2},${yy(v)}`)].join(" ");
+  g+=`<polyline points="${line}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/>`;
+  g+=`<circle cx="${x(11)+bw/2}" cy="${yy(bal[11])}" r="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="2.5"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+}
+function worthChart(bank, sims, worth){
+  const W=680,H=280,pl=64,pr=12,pt=14,pb=30, N=13;
+  const pos = k => Math.max(0,bank[k]) + sims.filter(o=>o.it.kind!=="debt").reduce((a,o)=>a+Math.max(0,o.vals[k]),0);
+  const neg = k => Math.max(0,-bank[k]) + sims.filter(o=>o.it.kind==="debt").reduce((a,o)=>a+o.vals[k],0);
+  let mx=0, mn=0; for(let k=0;k<N;k++){ mx=Math.max(mx,pos(k),worth[k]); mn=Math.min(mn,-neg(k),worth[k]); }
+  const pad=(mx-mn)*0.08||1000; mx+=pad; if(mn<0) mn-=pad;
+  const x=k=>pl+(W-pl-pr)*(k+0.5)/N, yy=v=>pt+(H-pt-pb)*(mx-v)/(mx-mn), bw=(W-pl-pr)/N*0.6;
+  let g="";
+  for(let i=0;i<=4;i++){ const v=mn+(mx-mn)*i/4; g+=`<line x1="${pl}" x2="${W-pr}" y1="${yy(v)}" y2="${yy(v)}" stroke="var(--line)"/><text x="${pl-8}" y="${yy(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${axis(v)}</text>`; }
+  g+=`<line x1="${pl}" x2="${W-pr}" y1="${yy(0)}" y2="${yy(0)}" stroke="var(--muted)"/>`;
+  for(let k=0;k<N;k++){
+    let up=0, dn=0;
+    const seg=(val,col,title,isNeg)=>{ if(val<=0) return; const a=isNeg?-dn:up, b=isNeg?-(dn+val):up+val;
+      g+=`<rect x="${x(k)-bw/2}" y="${yy(Math.max(a,b))}" width="${bw}" height="${Math.max(0.5,Math.abs(yy(a)-yy(b)))}" fill="var(${col})" opacity=".85"><title>${esc(title)}: ${fmt(val)}</title></rect>`;
+      if(isNeg) dn+=val; else up+=val; };
+    seg(Math.max(0,bank[k]),"--bankc",t("bankLbl"),false); seg(Math.max(0,-bank[k]),"--d1",t("overdraft"),true);
+    sims.forEach(o=>{ const v=o.vals[k]; if(o.it.kind==="debt") seg(v,itemColor(o.it),o.it.name,true); else seg(Math.max(0,v),itemColor(o.it),o.it.name,false); });
+    g+=`<text x="${x(k)}" y="${H-10}" text-anchor="middle" font-size="12" fill="var(--muted)">${k===0?t("start"):M()[k-1]}</text>`;
+  }
+  g+=`<polyline points="${worth.map((v,k)=>`${x(k)},${yy(v)}`).join(" ")}" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round"/>`;
+  worth.forEach((v,k)=>{ if(k===0||k===12) g+=`<circle cx="${x(k)}" cy="${yy(v)}" r="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="2.5"/>`; });
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+}
+const signed = v => (v>=0?"+":"−") + fmt(Math.abs(v));
+
+// ---------- główne przeliczenie ----------
+function update(){
+  const s = state, y = calcYear(s);
+  const costSum = COSTS.reduce((a,c)=>a+s[c.id],0);
+  const yearNet = y.months.reduce((a,m)=>a+m.net,0), avgNet = yearNet/12;
+  const income = avgNet + s.other, surplus = income - costSum;
+  const firstTaxed = y.months.findIndex(m=>m.taxable>0);
+  const hasRelief = y.rel > 0, changes = firstTaxed > 0;
+  const zusY = y.months.reduce((a,m)=>a+m.zus,0), healthY = y.months.reduce((a,m)=>a+m.health,0);
+
+  const tt = document.getElementById("heroTitle"), sub = document.getElementById("heroSub");
+  const taxLine = t("taxLine", fmt(y.advSum), fmt(y.annualTax), y.refund>50 ? fmt(y.refund) : "");
+  const n1 = document.getElementById("n1Lbl"), n2 = document.getElementById("n2Lbl"), lbl = document.getElementById("leftLbl");
+  const v1 = document.getElementById("netBefore"), v2 = document.getElementById("netAfter"), v3 = document.getElementById("limitLeft");
+  if(!hasRelief && s.age >= 26){
+    tt.textContent = t("heroFullT", fmt(yearNet));
+    sub.innerHTML = t("heroFullS", fmt(y.cum), fmt(zusY), fmt(healthY), fmt(y.annualTax), fmt(avgNet)) + (y.refund>50 ? t("refundLine", fmt(y.refund)) : "");
+    n1.textContent = t("nAvg"); v1.textContent = fmt(avgNet);
+    n2.textContent = t("nYearNet"); v2.textContent = fmt(yearNet);
+    lbl.textContent = t("nTax"); v3.textContent = fmt(y.annualTax);
+  } else {
+    if(!hasRelief){ tt.textContent = t("heroEndsJanT"); sub.innerHTML = t("heroEndsJanS", taxLine); }
+    else if(y.crossIdx >= 0){ tt.textContent = t("heroCrossT", y.crossIdx); sub.innerHTML = t("heroCrossS", y.crossIdx+1, fmt(y.cum - LIMIT), taxLine); }
+    else if(y.rel < 12){ tt.textContent = t("heroBdayT", y.rel); sub.innerHTML = t("heroBdayS", fmt(LIMIT - y.cumEx), taxLine); }
+    else { tt.textContent = t("heroWithinT"); sub.innerHTML = t("heroWithinS", fmt(y.cum)); }
+    n1.textContent = t("nBefore"); v1.textContent = hasRelief ? fmt(y.months[0].net) : "—";
+    n2.textContent = t("nAfter"); v2.textContent = firstTaxed<0 ? "—" : fmt(y.months[11].net);
+    lbl.textContent = t("nLeft"); v3.textContent = s.age===25 ? t("leftUntil", s.bm-1) : t("leftYears", 26 - s.age);
+  }
+  document.getElementById("heroChart").innerHTML = heroChart(y);
+
+  document.getElementById("costTotal").textContent = fmt(costSum);
+  document.getElementById("incTotal").textContent = fmt(income) + t("netSuffix");
+
+  const sEl = document.getElementById("surplus");
+  sEl.textContent = signed(surplus); sEl.className = "big " + (surplus>=0?"pos":"neg");
+  const before = y.months[0].net + s.other - costSum, after = y.months[11].net + s.other - costSum;
+  document.getElementById("warn").innerHTML =
+    surplus<0 ? `<div class="warn">${t("warnDeficit", fmt(-surplus))}</div>` :
+    (changes && after<0) ? `<div class="warn">${t("warnAfter", fmt(-after))}</div>` : "";
+  const base = Math.max(income, costSum);
+  let bar="", leg="";
+  COSTS.forEach(c=>{ const v=s[c.id], nm=t("sl_"+c.id);
+    bar+=`<span style="width:${base>0?v/base*100:0}%;background:var(${c.color})" title="${nm}: ${fmt(v)}"></span>`;
+    leg+=`<div><span><i style="background:var(${c.color})"></i>${nm}</span><span>${fmt(v)} <span class="pct">${income>0?Math.round(v/income*100):0}%</span></span></div>`; });
+  if(surplus>0){ bar+=`<span style="width:${surplus/base*100}%;background:var(--c-free)" title="${t("free")}: ${fmt(surplus)}"></span>`;
+    leg+=`<div><span><i style="background:var(--c-free)"></i>${t("free")}</span><span>${fmt(surplus)} <span class="pct">${Math.round(surplus/income*100)}%</span></span></div>`; }
+  document.getElementById("alloc").innerHTML = bar;
+  document.getElementById("legend").innerHTML = leg;
+  const saveRate = income>0 ? (s.invest + Math.max(0,surplus))/income*100 : 0;
+  document.getElementById("kv").innerHTML = `
+    <span class="k">${t("kvAvg")}</span><span class="v">${fmt(avgNet)}</span>
+    ${changes ? `<span class="k">${t("kvBefore")}</span><span class="v">${fmt(before)}</span><span class="k">${t("kvAfter")}</span><span class="v">${fmt(after)}</span>`
+              : `<span class="k">${t("kvMonthly")}</span><span class="v">${fmt(surplus)}</span>`}
+    <span class="k">${t("kvRate")}</span><span class="v">${saveRate.toFixed(0)}%</span>
+    <span class="k">${t("kvYear")}</span><span class="v">${fmt(surplus*12)}</span>`;
+
+  const extraInv = s.reinvest ? Math.max(0,surplus) : 0;
+  const invItems = s.items.filter(x=>x.kind==="inv");
+  const contrib = s.invest + (invItems.length ? extraInv : 0);
+  const startInv = invItems.reduce((a,x)=>a+(+x.value||0),0);
+  const simP = simItems(Object.assign({}, s, {items:invItems}), extraInv, s.years*12);
+  let series=[startInv], paidS=[startInv], paid=startInv;
+  for(let yr=1; yr<=s.years; yr++){ paid += contrib*12; paidS.push(paid); series.push(simP.reduce((a,o)=>a+o.vals[yr*12],0)); }
+  const v = series[series.length-1];
+  const wDen = invItems.reduce((a,x)=>a+(+x.value||0)+(+x.contrib||0)*12,0);
+  const wRate = wDen>0 ? invItems.reduce((a,x)=>a+(+x.rate||0)*((+x.value||0)+(+x.contrib||0)*12),0)/wDen : s.rate;
+  document.getElementById("pFinal").textContent = fmtK(v);
+  document.getElementById("pPaid").textContent = fmtK(paid);
+  document.getElementById("pGain").textContent = fmtK(v - paid);
+  document.getElementById("projHint").textContent = invItems.length ? t("projHint", invItems.length, fmt(startInv), fmt(contrib), s.years, dec1(wRate)) : t("projEmpty");
+  document.getElementById("projChart").innerHTML = projChart(series, paidS);
+
+  const outExtra = invItems.length ? extraInv : 0;
+  const sim12 = simItems(s, outExtra, 12);
+  const debtPaid = m => sim12.filter(o=>o.it.kind==="debt").reduce((a,o)=>a+o.paid[m],0);
+  let b0 = s.bank, bal=[], flows=[];
+  y.months.forEach((m,i)=>{ const f = m.net + s.other - costSum - outExtra + (s.loan - debtPaid(i)); flows.push(f); b0 += f; bal.push(b0); });
+  const bEnd=bal[11], bMin=Math.min(s.bank,...bal), d=bEnd-s.bank;
+  document.getElementById("bankEnd").textContent = fmt(bEnd);
+  const dEl=document.getElementById("bankDelta"); dEl.textContent=signed(d); dEl.style.color=d>=0?"var(--income)":"var(--cost)";
+  const mEl=document.getElementById("bankMin"); mEl.textContent=fmt(bMin); mEl.style.color=bMin<0?"var(--cost)":"";
+  document.getElementById("bankAvg").textContent=signed(d/12);
+  document.getElementById("bankAfterBox").classList.toggle("hidden", !changes);
+  document.getElementById("bankAfter").textContent = changes ? signed(flows[11]) : "—";
+  document.getElementById("bankChart").innerHTML = bankChart(s.bank, bal, flows);
+
+  const bankSeries=[s.bank,...bal];
+  const totA = k => Math.max(0,bankSeries[k]) + sim12.filter(o=>o.it.kind!=="debt").reduce((a,o)=>a+o.vals[k],0);
+  const totD = k => Math.max(0,-bankSeries[k]) + sim12.filter(o=>o.it.kind==="debt").reduce((a,o)=>a+o.vals[k],0);
+  const worth = [...Array(13)].map((_,k)=>totA(k)-totD(k));
+  document.getElementById("worthEnd").textContent = fmt(worth[12]);
+  document.getElementById("wAssets").textContent = fmt(totA(12));
+  document.getElementById("wDebts").textContent = fmt(totD(12));
+  document.getElementById("wStart").textContent = fmt(worth[0]);
+  const wd = worth[12]-worth[0], wdEl=document.getElementById("wDelta");
+  wdEl.textContent = signed(wd); wdEl.style.color = wd>=0?"var(--income)":"var(--cost)";
+  document.getElementById("worthChart").innerHTML = worthChart(bankSeries, sim12, worth);
+  document.getElementById("worthLegend").innerHTML =
+    `<span><i style="background:var(--bankc)"></i>${t("legendBank")}</span>` +
+    sim12.map(o=>`<span><i style="background:var(${itemColor(o.it)})"></i>${esc(o.it.name)}</span>`).join("") +
+    `<span><i style="background:var(--ink);height:3px;vertical-align:middle"></i>${t("legendWorth")}</span>`;
+
+  renderReliefs();
+
+  let rows = `<tr><th>${t("thMonth")}</th><th>${t("thGross")}</th><th>${t("thZus")}</th><th>${t("thHealth")}</th><th>${t("thAdv")}</th><th>${t("thNet")}</th><th>${t("thCum")}</th><th>${t("thBank")}</th></tr>`;
+  y.months.forEach((m,i)=>{ rows += `<tr class="${i===firstTaxed && changes?"cross":""}"><td>${M()[i]}</td><td>${fmt(m.b)}</td><td>${fmt(m.zus)}</td><td>${fmt(m.health)}</td><td>${fmt(m.adv)}</td><td><strong>${fmt(m.net)}</strong></td><td>${fmt(m.cum)}</td><td>${fmt(bal[i])}</td></tr>`; });
+  document.getElementById("table").innerHTML = rows;
+}
+
+applyStatic(); renderItems(); syncRelief(); syncAll(); update();
+})();
+</script>
+</body>
+</html>
